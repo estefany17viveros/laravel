@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\type;
+use App\Models\payment;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoretypeRequest;
-use App\Http\Requests\UpdatetypeRequest;
+use App\Http\Requests\StorepaymentRequest;
+use App\Http\Requests\UpdatepaymentRequest;
 
-class TypeController extends Controller
+class PaymentController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -28,7 +28,7 @@ class TypeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoretypeRequest $request)
+    public function store(StorepaymentRequest $request)
     {
         //
     }
@@ -36,7 +36,7 @@ class TypeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(type $type)
+    public function show(payment $payment)
     {
         //
     }
@@ -44,7 +44,7 @@ class TypeController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(type $type)
+    public function edit(payment $payment)
     {
         //
     }
@@ -52,7 +52,7 @@ class TypeController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdatetypeRequest $request, type $type)
+    public function update(UpdatepaymentRequest $request, payment $payment)
     {
         //
     }
@@ -60,7 +60,7 @@ class TypeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(type $type)
+    public function destroy(payment $payment)
     {
         //
     }

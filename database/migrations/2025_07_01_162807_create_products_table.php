@@ -14,16 +14,10 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();  // Cambiado a text y nullable
-            $table->decimal('price', 10, 2);         // Campo para el precio
-            $table->string('image')->nullable();     // Para la ruta de la imagen
-            
-            
-            $table->unsignedBigInteger('category_id')->nullable();
-            $table->foreign('category_id')
-                  ->references('id')
-                  ->on('categories')
-                  ->onDelete('cascade');
+            $table->text('description')->nullable();  
+            $table->decimal('price', 10, 2);         
+            $table->string('image')->nullable();    
+            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
 
             $table->timestamps();
         });

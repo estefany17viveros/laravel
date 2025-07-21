@@ -2,66 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\forum;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreforumRequest;
-use App\Http\Requests\UpdateforumRequest;
+use App\Models\Forum;
+use Illuminate\Http\Request;
 
 class ForumController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $forums = Forum::included()->filter()->sort()->getOrPaginate();
+        return response()->json($forums);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'date' => 'required|date',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $forum = Forum::create($request->all());
+        return response()->json($forum, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreforumRequest $request)
+    public function show($id)
     {
-        //
+        $forum = Forum::with('user')->findOrFail($id);
+        return response()->json($forum);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(forum $forum)
+    public function update(Request $request, Forum $forum)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+            'date' => 'sometimes|date',
+            'user_id' => 'sometimes|exists:users,id',
+        ]);
+
+        $forum->update($request->all());
+        return response()->json($forum);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(forum $forum)
+    public function destroy(Forum $forum)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateforumRequest $request, forum $forum)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(forum $forum)
-    {
-        //
+        $forum->delete();
+        return response()->json(['message' => 'Deleted successfully']);
     }
 }

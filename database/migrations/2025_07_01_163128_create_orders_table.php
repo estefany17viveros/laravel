@@ -16,12 +16,7 @@ return new class extends Migration
              $table->decimal('total', 10, 2);
             $table->string('status');
             $table->date('order_date')->nullable();
-            
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->foreign('user_id')
-                  ->references('id')
-                  ->on('users')
-                  ->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
 
             $table->timestamps();
         });

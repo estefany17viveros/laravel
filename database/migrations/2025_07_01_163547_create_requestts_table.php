@@ -11,15 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('requests', function (Blueprint $table) {
+        Schema::create('requestts', function (Blueprint $table) {
             $table->id();
-             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-    $table->foreignId('shelter_id')->nullable()->constrained()->nullOnDelete();
-    $table->foreignId('services_id')->nullable()->constrained('services')->nullOnDelete();
     $table->dateTime('date')->nullable();
     $table->integer('priority');
     $table->string('solicitation_status');
-    $table->foreignId('appointment_id')->nullable()->constrained()->nullOnDelete();
+
+    $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+    $table->foreignId('shelter_id')->nullable()->constrained('shelters')->onDelete('cascade');
+    $table->foreignId('services_id')->constrained('services')->onDelete('cascade');
+    $table->foreignId('appointment_id')->constrained('appointments')->onDelete('cascade');
 
             $table->timestamps();
         });

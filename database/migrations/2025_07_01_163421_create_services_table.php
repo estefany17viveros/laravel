@@ -21,7 +21,7 @@ return new class extends Migration
    
     $table->unsignedBigInteger('trainer_id')->nullable()->constrained('trainers')->ondelete('set null');
    
-    $table->unsignedBigInteger('request_id')->nullable()->constrained('requests')->ondelete('set null');
+    $table->unsignedBigInteger('requestt_id')->nullable()->constrained('requestts')->ondelete('set null');
    
             $table->timestamps();
         });

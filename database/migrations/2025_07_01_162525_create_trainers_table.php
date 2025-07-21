@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('trainers', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
              $table->string('specialty');
         $table->integer('experience');
         $table->decimal('rating', 3, 2);
         $table->decimal('phone', 15, 0);
         $table->string('email');
         $table->text('biography');
+        $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
         
             $table->timestamps();
         });

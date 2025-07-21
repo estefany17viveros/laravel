@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\request;
+use App\Models\administrator;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StorerequestRequest;
-use App\Http\Requests\UpdaterequestRequest;
+use App\Http\Requests\StoreadministratorRequest;
+use App\Http\Requests\UpdateadministratorRequest;
 
-class RequestController extends Controller
+class AdministratorController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -28,7 +28,7 @@ class RequestController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StorerequestRequest $request)
+    public function store(StoreadministratorRequest $request)
     {
         //
     }
@@ -36,7 +36,7 @@ class RequestController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(request $request)
+    public function show(administrator $administrator)
     {
         //
     }
@@ -44,7 +44,7 @@ class RequestController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(request $request)
+    public function edit(administrator $administrator)
     {
         //
     }
@@ -52,7 +52,7 @@ class RequestController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdaterequestRequest $request, request $request)
+    public function update(UpdateadministratorRequest $request, administrator $administrator)
     {
         //
     }
@@ -60,7 +60,7 @@ class RequestController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(request $request)
+    public function destroy(administrator $administrator)
     {
         //
     }

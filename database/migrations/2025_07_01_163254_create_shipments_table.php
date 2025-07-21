@@ -17,13 +17,7 @@ return new class extends Migration
             $table->decimal('cost', 10, 2);
             $table->string('status');
             $table->string('shipping_method');
-            
-            $table->unsignedBigInteger('order_id')->nullable();
-            $table->foreign('order_id')
-                  ->references('id')
-                  ->on('orders')
-                  ->onDelete('cascade');
-
+            $table->foreignId('order_id')->constrained('orders')->onDelete('cascade');
             $table->timestamps();
         });
     }

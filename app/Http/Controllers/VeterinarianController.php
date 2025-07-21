@@ -2,66 +2,78 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\veterinarian;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreveterinarianRequest;
-use App\Http\Requests\UpdateveterinarianRequest;
+use App\Models\Veterinarian;
+use Illuminate\Http\Request;
 
 class VeterinarianController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        // Consulta con relaciones incluidas, filtrado, ordenamiento y paginación
+        $veterinarians = Veterinarian::included()->filter()->sort()->getOrPaginate();
+
+        return response()->json($veterinarians);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Store a newly created veterinarian.
      */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name'          => 'required|max:100',
+            'email'         => 'required|email|unique:veterinarians,email',
+            'phone'         => 'required|max:20',
+            'specialty'     => 'nullable|max:100',
+            'experience'    => 'nullable|max:100',
+            'qualifications'=> 'nullable|max:255',
+            'biography'     => 'nullable',
+            'user_id'       => 'required|exists:users,id',
+            'shelter_id'    => 'required|exists:shelters,id',
+        ]);
+
+        $veterinarian = Veterinarian::create($request->all());
+
+        return response()->json($veterinarian, 201);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Display the specified veterinarian.
      */
-    public function store(StoreveterinarianRequest $request)
+    public function show($id)
     {
-        //
+        $veterinarian = Veterinarian::findOrFail($id);
+        return response()->json($veterinarian);
     }
 
     /**
-     * Display the specified resource.
+     * Update the specified veterinarian.
      */
-    public function show(veterinarian $veterinarian)
+    public function update(Request $request, Veterinarian $veterinarian)
     {
-        //
+        $request->validate([
+            'name'          => 'sometimes|max:100',
+            'email'         => 'sometimes|email|unique:veterinarians,email,' . $veterinarian->id,
+            'phone'         => 'sometimes|max:20',
+            'specialty'     => 'nullable|max:100',
+            'experience'    => 'nullable|max:100',
+            'qualifications'=> 'nullable|max:255',
+            'biography'     => 'nullable',
+            'user_id'       => 'sometimes|exists:users,id',
+            'shelter_id'    => 'sometimes|exists:shelters,id',
+        ]);
+
+        $veterinarian->update($request->all());
+
+        return response()->json($veterinarian);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Remove the specified veterinarian.
      */
-    public function edit(veterinarian $veterinarian)
+    public function destroy(Veterinarian $veterinarian)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateveterinarianRequest $request, veterinarian $veterinarian)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(veterinarian $veterinarian)
-    {
-        //
+        $veterinarian->delete();
+        return response()->json(['message' => 'Veterinarian deleted successfully']);
     }
 }

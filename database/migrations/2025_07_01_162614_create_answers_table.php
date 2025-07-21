@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
              $table->string('content');
             $table->string('creation_date'); 
-            $table->foreignId('topic_id')->nullable()->constrained('topics')->onDelete('cascade');
-            $table->foreignId('userS_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('topic_id')->constrained('topics')->onDelete('cascade');
+            $table->foreignId('users_id')->constrained('users')->onDelete('cascade');
             
             $table->timestamps();
         });

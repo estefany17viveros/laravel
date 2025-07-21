@@ -13,13 +13,12 @@ return new class extends Migration
     {
         Schema::create('socks', function (Blueprint $table) {
             $table->id();
-             $table->string('Guy');
+             $table->string('type');
             $table->string('URL');
             $table->string('Upload_Date');
 
-            $table->unsignedBigInteger('users_id');
-            $table->foreign('users_id')->references('id')->on('users')->onDelete('cascade');
-            
+            $table->foreignId('topic_id')->constrained('topics')->onDelete('cascade');
+
             $table->timestamps();
         });
     }

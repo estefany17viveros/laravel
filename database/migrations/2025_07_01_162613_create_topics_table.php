@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('topics', function (Blueprint $table) {
             $table->id();
-                 $table->string('title');
-        $table->text('description')->nullable(); // <- ESTE CAMPO
-        $table->unsignedBigInteger('forum_id');
-        $table->date('creation_date');
-         
+            $table->string('title');
+             $table->text('description')->nullable(); 
+             $table->date('creation_date');
+             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+             $table->foreignId('forum_id')->constrained('forums')->onDelete('cascade');
+
             $table->timestamps();
         });
     }

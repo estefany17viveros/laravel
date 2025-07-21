@@ -20,15 +20,11 @@ return new class extends Migration
             $table->decimal('size', 8, 2); // tamano
             $table->string('sex'); // sexo
             $table->longText('description')->nullable(); // descripcion
-
-            $table->string('gmail');
-            $table->longText('biography')->nullable();
-
+            $table->string('photo')->nullable(); // imagen
             $table->foreignId('trainer_id')->constrained('trainers')->OnDelete('cascade');
-            $table->foreignId('appointment_id')->constrained('appointments')->OnDelete('cascade');
             $table->foreignId('shelter_id')->constrained('shelters')->OnDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->OnDelete('cascadde');
-            
+            $table->foreignId('veterinarian_id')->constrained('veterinarians')->OnDelete('cascade');
             $table->timestamps();
         });
     }

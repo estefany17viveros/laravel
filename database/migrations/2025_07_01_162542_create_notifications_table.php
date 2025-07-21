@@ -15,10 +15,7 @@ return new class extends Migration
             $table->id();
               $table->string('Title');
             $table->string('Description');
-
-            $table->unsignedBigInteger('trainer_id')->nullable();
-            $table->foreign('trainer_id')->references('id')->on('trainers')->onDelete('cascade');
-
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }
