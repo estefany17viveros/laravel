@@ -2,22 +2,23 @@
 
 namespace Database\Factories;
 
+use App\Models\Shelter;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\shelter>
- */
 class ShelterFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = Shelter::class;
+
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->company(),
+            'phone' => $this->faker->phoneNumber(),
+            'responsible' => $this->faker->name(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'address' => $this->faker->address(),
+            'user_id' => User::factory(),
         ];
     }
 }

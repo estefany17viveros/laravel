@@ -2,66 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\shipment;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreshipmentRequest;
-use App\Http\Requests\UpdateshipmentRequest;
+use App\Models\Shipment;
+use Illuminate\Http\Request;
 
 class ShipmentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $shipments = Shipment::included()->filter()->sort()->getOrPaginate();
+        return response()->json($shipments);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'shipping_address' => 'required|string',
+            'cost' => 'required|numeric|min:0',
+            'status' => 'required|string',
+            'shipping_method' => 'required|string',
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        $shipment = Shipment::create($request->all());
+        return response()->json($shipment, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreshipmentRequest $request)
+    public function show($id)
     {
-        //
+        $shipment = Shipment::with('order')->findOrFail($id);
+        return response()->json($shipment);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(shipment $shipment)
+    public function update(Request $request, Shipment $shipment)
     {
-        //
+        $request->validate([
+            'shipping_address' => 'sometimes|string',
+            'cost' => 'sometimes|numeric|min:0',
+            'status' => 'sometimes|string',
+            'shipping_method' => 'sometimes|string',
+            'order_id' => 'sometimes|exists:orders,id',
+        ]);
+
+        $shipment->update($request->all());
+        return response()->json($shipment);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(shipment $shipment)
+    public function destroy(Shipment $shipment)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateshipmentRequest $request, shipment $shipment)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(shipment $shipment)
-    {
-        //
+        $shipment->delete();
+        return response()->json(['message' => 'Shipment deleted']);
     }
 }

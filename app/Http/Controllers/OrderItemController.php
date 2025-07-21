@@ -2,66 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\order_item;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Storeorder_itemRequest;
-use App\Http\Requests\Updateorder_itemRequest;
+use Illuminate\Http\Request;
+use App\Models\OrderItem;
 
 class OrderItemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $items = OrderItem::included()->filter()->sort()->getOrPaginate();
+        return response()->json($items);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'order_id' => 'required|exists:orders,id',
+            'product_id' => 'required|exists:products,id',
+        ]);
+
+        $item = OrderItem::create($request->all());
+        return response()->json($item, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Storeorder_itemRequest $request)
+    public function show($id)
     {
-        //
+        $item = OrderItem::with(['order', 'product'])->findOrFail($id);
+        return response()->json($item);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(order_item $order_item)
+    public function update(Request $request, OrderItem $orderItem)
     {
-        //
+        $request->validate([
+            'quantity' => 'sometimes|required|integer|min:1',
+            'unit_price' => 'sometimes|required|numeric|min:0',
+            'order_id' => 'sometimes|required|exists:orders,id',
+            'product_id' => 'sometimes|required|exists:products,id',
+        ]);
+
+        $orderItem->update($request->all());
+        return response()->json($orderItem);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(order_item $order_item)
+    public function destroy(OrderItem $orderItem)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Updateorder_itemRequest $request, order_item $order_item)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(order_item $order_item)
-    {
-        //
+        $orderItem->delete();
+        return response()->json(['message' => 'OrderItem deleted']);
     }
 }

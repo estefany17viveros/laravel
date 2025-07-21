@@ -2,22 +2,21 @@
 
 namespace Database\Factories;
 
+use App\Models\Sock;
+use App\Models\Topic;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\sock>
- */
 class SockFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = Sock::class;
+
     public function definition(): array
     {
         return [
-            //
+            'type' => $this->faker->word(),
+            'URL' => $this->faker->imageUrl(), // o ->url() si no son imágenes
+            'Upload_Date' => $this->faker->date(),
+            'topic_id' => Topic::factory(),
         ];
     }
 }

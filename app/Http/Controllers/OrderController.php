@@ -2,66 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\order;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreorderRequest;
-use App\Http\Requests\UpdateorderRequest;
+use Illuminate\Http\Request;
+use App\Models\Order;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $orders = Order::included()->filter()->sort()->getOrPaginate();
+        return response()->json($orders);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'total' => 'required|numeric|min:0',
+            'status' => 'required|string',
+            'order_date' => 'nullable|date',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $order = Order::create($request->all());
+        return response()->json($order, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreorderRequest $request)
+    public function show($id)
     {
-        //
+        $order = Order::with('user')->findOrFail($id);
+        return response()->json($order);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(order $order)
+    public function update(Request $request, Order $order)
     {
-        //
+        $request->validate([
+            'total' => 'sometimes|numeric|min:0',
+            'status' => 'sometimes|string',
+            'order_date' => 'sometimes|date|nullable',
+            'user_id' => 'sometimes|exists:users,id',
+        ]);
+
+        $order->update($request->all());
+        return response()->json($order);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(order $order)
+    public function destroy(Order $order)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateorderRequest $request, order $order)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(order $order)
-    {
-        //
+        $order->delete();
+        return response()->json(['message' => 'Order deleted']);
     }
 }

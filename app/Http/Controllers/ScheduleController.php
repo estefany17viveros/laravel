@@ -2,66 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\schedule;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StorescheduleRequest;
-use App\Http\Requests\UpdatescheduleRequest;
+use App\Models\Schedule;
+use Illuminate\Http\Request;
 
 class ScheduleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $schedules = Schedule::included()->filter()->sort()->getOrPaginate();
+        return response()->json($schedules);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'date' => 'required|date',
+            'hour' => 'required|integer|min:0|max:23',
+            'location' => 'required|string|max:255',
+            'service_id' => 'nullable|exists:services,id',
+        ]);
+
+        $schedule = Schedule::create($request->all());
+        return response()->json($schedule, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StorescheduleRequest $request)
+    public function show($id)
     {
-        //
+        $schedule = Schedule::with('service')->findOrFail($id);
+        return response()->json($schedule);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(schedule $schedule)
+    public function update(Request $request, Schedule $schedule)
     {
-        //
+        $request->validate([
+            'date' => 'sometimes|date',
+            'hour' => 'sometimes|integer|min:0|max:23',
+            'location' => 'sometimes|string|max:255',
+            'service_id' => 'nullable|exists:services,id',
+        ]);
+
+        $schedule->update($request->all());
+        return response()->json($schedule);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(schedule $schedule)
+    public function destroy(Schedule $schedule)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatescheduleRequest $request, schedule $schedule)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(schedule $schedule)
-    {
-        //
+        $schedule->delete();
+        return response()->json(['message' => 'Schedule deleted']);
     }
 }

@@ -2,66 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\inventory;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreinventoryRequest;
-use App\Http\Requests\UpdateinventoryRequest;
+use App\Models\Inventory;
+use Illuminate\Http\Request;
 
 class InventoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $inventories = Inventory::included()->filter()->sort()->getOrPaginate();
+        return response()->json($inventories);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'quantity_available' => 'required|integer|min:0',
+            'product_id' => 'required|exists:products,id',
+        ]);
+
+        $inventory = Inventory::create($request->all());
+        return response()->json($inventory, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreinventoryRequest $request)
+    public function show($id)
     {
-        //
+        $inventory = Inventory::with('product')->findOrFail($id);
+        return response()->json($inventory);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(inventory $inventory)
+    public function update(Request $request, Inventory $inventory)
     {
-        //
+        $request->validate([
+            'quantity_available' => 'sometimes|required|integer|min:0',
+            'product_id' => 'sometimes|required|exists:products,id',
+        ]);
+
+        $inventory->update($request->all());
+        return response()->json($inventory);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(inventory $inventory)
+    public function destroy(Inventory $inventory)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateinventoryRequest $request, inventory $inventory)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(inventory $inventory)
-    {
-        //
+        $inventory->delete();
+        return response()->json(['message' => 'Inventory deleted']);
     }
 }

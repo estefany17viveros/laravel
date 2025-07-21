@@ -1,67 +1,55 @@
 <?php
+// app/Http/Controllers/ProductController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\product;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreproductRequest;
-use App\Http\Requests\UpdateproductRequest;
+use Illuminate\Http\Request;
+use App\Models\Product;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        return response()->json(Product::included()->filter()->sort()->getOrPaginate());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric',
+            'image' => 'nullable|string',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        $product = Product::create($request->all());
+        return response()->json($product, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreproductRequest $request)
+    public function show($id)
     {
-        //
+        $product = Product::findOrFail($id);
+        return response()->json($product);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(product $product)
+    public function update(Request $request, Product $product)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|string',
+            'description' => 'nullable|string',
+            'price' => 'sometimes|numeric',
+            'image' => 'nullable|string',
+            'category_id' => 'sometimes|exists:categories,id',
+        ]);
+
+        $product->update($request->all());
+        return response()->json($product);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(product $product)
+    public function destroy(Product $product)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateproductRequest $request, product $product)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(product $product)
-    {
-        //
+        $product->delete();
+        return response()->json(['message' => 'Product deleted']);
     }
 }

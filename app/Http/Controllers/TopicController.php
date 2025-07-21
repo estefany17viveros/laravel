@@ -1,67 +1,56 @@
 <?php
+// app/Http/Controllers/TopicController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\topic;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoretopicRequest;
-use App\Http\Requests\UpdatetopicRequest;
+use Illuminate\Http\Request;
+use App\Models\Topic;
 
 class TopicController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $topics = Topic::included()->filter()->sort()->getOrPaginate();
+        return response()->json($topics);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'title' => 'required|max:255',
+            'description' => 'nullable',
+            'creation_date' => 'required|date',
+            'user_id' => 'required|exists:users,id',
+            'forum_id' => 'required|exists:forums,id',
+        ]);
+
+        $topic = Topic::create($request->all());
+        return response()->json($topic, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoretopicRequest $request)
+    public function show($id)
     {
-        //
+        $topic = Topic::findOrFail($id);
+        return response()->json($topic);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(topic $topic)
+    public function update(Request $request, Topic $topic)
     {
-        //
+        $request->validate([
+            'title' => 'sometimes|max:255',
+            'description' => 'sometimes|nullable',
+            'creation_date' => 'sometimes|date',
+            'user_id' => 'sometimes|exists:users,id',
+            'forum_id' => 'sometimes|exists:forums,id',
+        ]);
+
+        $topic->update($request->all());
+        return response()->json($topic);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(topic $topic)
+    public function destroy(Topic $topic)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatetopicRequest $request, topic $topic)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(topic $topic)
-    {
-        //
+        $topic->delete();
+        return response()->json(['message' => 'Topic deleted successfully']);
     }
 }

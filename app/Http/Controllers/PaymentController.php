@@ -2,66 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\payment;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StorepaymentRequest;
-use App\Http\Requests\UpdatepaymentRequest;
+use App\Models\Payment;
+use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $payments = Payment::included()->filter()->sort()->getOrPaginate();
+        return response()->json($payments);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'amount' => 'required|integer|min:0',
+            'date' => 'required|date',
+            'status' => 'required|in:pending,confirmed,completed,cancelled',
+            'order_id' => 'required|exists:orders,id',
+            'payment_method_id' => 'required|exists:payment_methods,id',
+        ]);
+
+        $payment = Payment::create($request->all());
+        return response()->json($payment, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StorepaymentRequest $request)
+    public function show($id)
     {
-        //
+        $payment = Payment::with(['order', 'paymentMethod'])->findOrFail($id);
+        return response()->json($payment);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(payment $payment)
+    public function update(Request $request, Payment $payment)
     {
-        //
+        $request->validate([
+            'amount' => 'sometimes|integer|min:0',
+            'date' => 'sometimes|date',
+            'status' => 'sometimes|in:pending,confirmed,completed,cancelled',
+            'order_id' => 'sometimes|exists:orders,id',
+            'payment_method_id' => 'sometimes|exists:payment_methods,id',
+        ]);
+
+        $payment->update($request->all());
+        return response()->json($payment);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(payment $payment)
+    public function destroy(Payment $payment)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatepaymentRequest $request, payment $payment)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(payment $payment)
-    {
-        //
+        $payment->delete();
+        return response()->json(['message' => 'Payment deleted successfully']);
     }
 }

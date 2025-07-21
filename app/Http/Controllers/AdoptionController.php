@@ -2,41 +2,58 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Adoption;
 use Illuminate\Http\Request;
-use App\Services\AdoptionService;
 
 class AdoptionController extends Controller
 {
-    protected $adoptionService;
-
-    public function __construct(AdoptionService $adoptionService)
-    {
-        $this->adoptionService = $adoptionService;
-    }
-
     public function index()
     {
-        return response()->json($this->adoptionService->getAll());
+        $adoptions = Adoption::included()->filter()->sort()->getOrPaginate();
+        return response()->json($adoptions);
     }
 
     public function store(Request $request)
     {
-        return response()->json($this->adoptionService->create($request->all()), 201);
+        $request->validate([
+            'application_date' => 'required|date',
+            'status' => 'required|string',
+            'comments' => 'required|string',
+            'user_id' => 'required|exists:users,id',
+            'pet_id' => 'required|exists:pets,id',
+            'requestt_id' => 'required|exists:requestts,id',
+            'shelter_id' => 'required|exists:shelters,id',
+        ]);
+
+        $adoption = Adoption::create($request->all());
+        return response()->json($adoption, 201);
     }
 
     public function show($id)
     {
-        return response()->json($this->adoptionService->getById($id));
+        $adoption = Adoption::with(['user', 'pet', 'requestt', 'shelter'])->findOrFail($id);
+        return response()->json($adoption);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Adoption $adoption)
     {
-        return response()->json($this->adoptionService->update($id, $request->all()));
+        $request->validate([
+            'application_date' => 'sometimes|date',
+            'status' => 'sometimes|string',
+            'comments' => 'sometimes|string',
+            'user_id' => 'sometimes|exists:users,id',
+            'pet_id' => 'sometimes|exists:pets,id',
+            'requestt_id' => 'sometimes|exists:requestts,id',
+            'shelter_id' => 'sometimes|exists:shelters,id',
+        ]);
+
+        $adoption->update($request->all());
+        return response()->json($adoption);
     }
 
-    public function destroy($id)
+    public function destroy(Adoption $adoption)
     {
-        $this->adoptionService->delete($id);
-        return response()->json(['message' => 'Adopción eliminada correctamente']);
+        $adoption->delete();
+        return response()->json(['message' => 'Adoption deleted']);
     }
 }

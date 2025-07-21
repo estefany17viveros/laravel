@@ -2,66 +2,66 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\administrator;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreadministratorRequest;
-use App\Http\Requests\UpdateadministratorRequest;
+use App\Models\Administrator;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AdministratorController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $administrators = Administrator::included()->filter()->sort()->getOrPaginate();
+        return response()->json($administrators);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|email|unique:administrators,email',
+            'password'    => 'required|string|min:6',
+            'status'      => 'boolean',
+            'phone_number'=> 'nullable|string',
+            'user_id'     => 'required|exists:users,id',
+        ]);
+
+        $data = $request->all();
+        $data['password'] = Hash::make($request->password);
+
+        $administrator = Administrator::create($data);
+        return response()->json($administrator, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreadministratorRequest $request)
+    public function show($id)
     {
-        //
+        $administrator = Administrator::with('user')->findOrFail($id);
+        return response()->json($administrator);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(administrator $administrator)
+    public function update(Request $request, Administrator $administrator)
     {
-        //
+        $request->validate([
+            'name'         => 'sometimes|string|max:255',
+            'email'        => 'sometimes|email|unique:administrators,email,' . $administrator->id,
+            'password'     => 'sometimes|string|min:6',
+            'status'       => 'boolean',
+            'phone_number' => 'nullable|string',
+            'user_id'      => 'sometimes|exists:users,id',
+        ]);
+
+        $data = $request->all();
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $administrator->update($data);
+        return response()->json($administrator);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(administrator $administrator)
+    public function destroy(Administrator $administrator)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateadministratorRequest $request, administrator $administrator)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(administrator $administrator)
-    {
-        //
+        $administrator->delete();
+        return response()->json(['message' => 'Administrator deleted successfully']);
     }
 }

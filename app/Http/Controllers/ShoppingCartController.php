@@ -2,66 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\shopping_cart;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Storeshopping_cartRequest;
-use App\Http\Requests\Updateshopping_cartRequest;
+use Illuminate\Http\Request;
+use App\Models\ShoppingCart;
 
 class ShoppingCartController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $carts = ShoppingCart::included()->filter()->sort()->getOrPaginate();
+        return response()->json($carts);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'creation_date' => 'required|date',
+            'quantity' => 'required|numeric|min:0',
+            'user_id' => 'required|exists:users,id',
+            'product_id' => 'required|exists:products,id',
+            'order_id' => 'nullable|exists:orders,id',
+        ]);
+
+        $cart = ShoppingCart::create($request->all());
+        return response()->json($cart, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Storeshopping_cartRequest $request)
+    public function show($id)
     {
-        //
+        $cart = ShoppingCart::with(['user', 'product', 'order'])->findOrFail($id);
+        return response()->json($cart);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(shopping_cart $shopping_cart)
+    public function update(Request $request, ShoppingCart $shoppingCart)
     {
-        //
+        $request->validate([
+            'creation_date' => 'sometimes|date',
+            'quantity' => 'sometimes|numeric|min:0',
+            'user_id' => 'sometimes|exists:users,id',
+            'product_id' => 'sometimes|exists:products,id',
+            'order_id' => 'nullable|exists:orders,id',
+        ]);
+
+        $shoppingCart->update($request->all());
+        return response()->json($shoppingCart);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(shopping_cart $shopping_cart)
+    public function destroy(ShoppingCart $shoppingCart)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Updateshopping_cartRequest $request, shopping_cart $shopping_cart)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(shopping_cart $shopping_cart)
-    {
-        //
+        $shoppingCart->delete();
+        return response()->json(['message' => 'Shopping cart item deleted']);
     }
 }

@@ -2,66 +2,58 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\service;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreserviceRequest;
-use App\Http\Requests\UpdateserviceRequest;
+use App\Models\Service;
+use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $services = Service::included()->filter()->sort()->getOrPaginate();
+        return response()->json($services);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'duration' => 'required|date',
+            'description' => 'nullable|string',
+            'veterinarian_id' => 'nullable|exists:veterinarians,id',
+            'trainer_id' => 'nullable|exists:trainers,id',
+            'requestt_id' => 'nullable|exists:requestts,id',
+        ]);
+
+        $service = Service::create($request->all());
+        return response()->json($service, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreserviceRequest $request)
+    public function show($id)
     {
-        //
+        $service = Service::with(['veterinarian', 'trainer', 'requestt'])->findOrFail($id);
+        return response()->json($service);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(service $service)
+    public function update(Request $request, Service $service)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|string',
+            'price' => 'sometimes|numeric|min:0',
+            'duration' => 'sometimes|date',
+            'description' => 'nullable|string',
+            'veterinarian_id' => 'nullable|exists:veterinarians,id',
+            'trainer_id' => 'nullable|exists:trainers,id',
+            'requestt_id' => 'nullable|exists:requestts,id',
+        ]);
+
+        $service->update($request->all());
+        return response()->json($service);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(service $service)
+    public function destroy(Service $service)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateserviceRequest $request, service $service)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(service $service)
-    {
-        //
+        $service->delete();
+        return response()->json(['message' => 'Service deleted']);
     }
 }

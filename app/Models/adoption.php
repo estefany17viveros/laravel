@@ -3,68 +3,101 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 
 class Adoption extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'pet_id', 'request_id','shelter_id','application_date','status','comments'];
+    protected $fillable = [
+        'application_date',
+        'status',
+        'comments',
+        'user_id',
+        'pet_id',
+        'requestt_id',
+        'shelter_id',
+    ];
 
-    //  Listas blancas
-    protected $allowIncluded = ['company', 'person', 'products'];
-    protected $allowFilter = ['id', 'application_date', 'status','comments'];
+    protected $allowIncluded = ['user', 'pet', 'requestt', 'shelter'];
+    protected $allowFilter = ['id', 'status', 'application_date'];
+    protected $allowSort = ['id', 'application_date'];
 
-    // Modelo en relaciones
-    public function products()
+    public function user()
     {
-        return $this->hasMany(Product::class);
+        return $this->belongsTo(User::class);
     }
 
-    public function company()
+    public function pet()
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(Pet::class);
     }
 
-    public function person()
+    public function requestt()
     {
-        return $this->belongsTo(Person::class);
+        return $this->belongsTo(Requestt::class);
     }
 
-    //  Scope para relaciones incluidas desde query string
+    public function shelter()
+    {
+        return $this->belongsTo(Shelter::class);
+    }
+
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
-            return;
-        }
+        if (empty($this->allowIncluded) || empty(request('included'))) return;
 
-        $relations = explode(',', request('included')); // ej: ?included=company,person
+        $relations = explode(',', request('included'));
         $allowIncluded = collect($this->allowIncluded);
 
         foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) {
-                unset($relations[$key]);
-            }
+            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
         }
 
         $query->with($relations);
     }
 
-    //  Scope para filtros desde query string
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
-        }
+        if (empty($this->allowFilter) || empty(request('filter'))) return;
 
         $filters = request('filter');
         $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', '%' . $value . '%');
+                $query->where($column, 'LIKE', "%$value%");
             }
         }
+    }
+
+    public function scopeSort(Builder $query)
+    {
+        if (empty($this->allowSort) || empty(request('sort'))) return;
+
+        $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
+
+        foreach ($sortFields as $field) {
+            $direction = 'asc';
+            if (str_starts_with($field, '-')) {
+                $direction = 'desc';
+                $field = substr($field, 1);
+            }
+
+            if ($allowSort->contains($field)) {
+                $query->orderBy($field, $direction);
+            }
+        }
+    }
+
+    public function scopeGetOrPaginate(Builder $query)
+    {
+        if (request('perPage')) {
+            return $query->paginate((int) request('perPage'));
+        }
+
+        return $query->get();
     }
 }

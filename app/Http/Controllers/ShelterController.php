@@ -1,67 +1,58 @@
 <?php
 
+// app/Http/Controllers/ShelterController.php
+
 namespace App\Http\Controllers;
 
-use App\Models\shelter;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreshelterRequest;
-use App\Http\Requests\UpdateshelterRequest;
+use Illuminate\Http\Request;
+use App\Models\Shelter;
 
 class ShelterController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        return response()->json(Shelter::included()->filter()->sort()->getOrPaginate());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string',
+            'phone' => 'required|string',
+            'responsible' => 'required|string',
+            'email' => 'required|email',
+            'address' => 'required|string',
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $shelter = Shelter::create($request->all());
+        return response()->json($shelter, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreshelterRequest $request)
+    public function show($id)
     {
-        //
+        $shelter = Shelter::findOrFail($id);
+        return response()->json($shelter);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(shelter $shelter)
+    public function update(Request $request, Shelter $shelter)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|string',
+            'phone' => 'sometimes|string',
+            'responsible' => 'sometimes|string',
+            'email' => 'sometimes|email',
+            'address' => 'sometimes|string',
+            'user_id' => 'sometimes|exists:users,id',
+        ]);
+
+        $shelter->update($request->all());
+        return response()->json($shelter);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(shelter $shelter)
+    public function destroy(Shelter $shelter)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateshelterRequest $request, shelter $shelter)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(shelter $shelter)
-    {
-        //
+        $shelter->delete();
+        return response()->json(['message' => 'Shelter deleted']);
     }
 }

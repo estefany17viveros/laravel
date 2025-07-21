@@ -1,67 +1,54 @@
 <?php
 
+// app/Http/Controllers/SockController.php
+
 namespace App\Http\Controllers;
 
-use App\Models\sock;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\StoresockRequest;
-use App\Http\Requests\UpdatesockRequest;
+use Illuminate\Http\Request;
+use App\Models\Sock;
 
 class SockController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        return response()->json(Sock::included()->filter()->sort()->getOrPaginate());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request)
     {
-        //
+        $request->validate([
+            'type' => 'required|string',
+            'URL' => 'required|string',
+            'Upload_Date' => 'required|date',
+            'topic_id' => 'required|exists:topics,id',
+        ]);
+
+        $sock = Sock::create($request->all());
+        return response()->json($sock, 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoresockRequest $request)
+    public function show($id)
     {
-        //
+        $sock = Sock::findOrFail($id);
+        return response()->json($sock);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(sock $sock)
+    public function update(Request $request, Sock $sock)
     {
-        //
+        $request->validate([
+            'type' => 'sometimes|string',
+            'URL' => 'sometimes|string',
+            'Upload_Date' => 'sometimes|date',
+            'topic_id' => 'sometimes|exists:topics,id',
+        ]);
+
+        $sock->update($request->all());
+        return response()->json($sock);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(sock $sock)
+    public function destroy(Sock $sock)
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatesockRequest $request, sock $sock)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(sock $sock)
-    {
-        //
+        $sock->delete();
+        return response()->json(['message' => 'Sock deleted']);
     }
 }

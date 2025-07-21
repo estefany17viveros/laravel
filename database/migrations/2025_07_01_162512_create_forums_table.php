@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('forums', function (Blueprint $table) {
             $table->id();
              $table->string('name'); // Add a default value
-    $table->string('description');
+    $table->text('description');
     $table->date('date');
     $table->foreignId('user_id')->constrained('users')->ondelete('cascade');
     
