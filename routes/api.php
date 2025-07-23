@@ -41,3 +41,9 @@ Route::apiResource('requestts', RequesttController::class);
 Route::apiResource('adoptions', AdoptionController::class);
 Route::apiResource('payments', PaymentController::class);
 Route::apiResource('administrators', AdministratorController::class);
+
+
+route::get('/products/{product}/category', [ProductController::class, 'category']);
+    $relations = collect($relations)->intersect($allowIncluded);
+        if ($relations->isNotEmpty()) {
+            $query->with($relations->toArray());                        
