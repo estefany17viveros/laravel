@@ -2,5 +2,5 @@
 
 return [
     App\Providers\AppServiceProvider::class,
-    App\Providers\RoutServiceProvider::class,
+    App\Providers\RouteServiceProvider::class,
 ];

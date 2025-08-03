@@ -3,16 +3,16 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Shopping_Cart;
+use App\Models\ShoppingCart;
 use App\Models\User;
 use App\Models\Product;
 
 /**
  * @extends Factory<\App\Models\ShoppingCart>
  */
-class Shopping_CartFactory extends Factory
+class ShoppingCartFactory extends Factory
 {
-    protected $model = Shopping_Cart::class;
+    protected $model = ShoppingCart::class;
 
     public function definition(): array
     {
