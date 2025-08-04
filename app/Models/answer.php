@@ -12,10 +12,7 @@ class Answer extends Model
 
     protected $fillable = ['content', 'creation_date', 'topic_id', 'users_id'];
 
-    protected $allowIncluded = ['topic', 'user'];
-    protected $allowFilter = ['id', 'content', 'creation_date'];
-    protected $allowSort = ['id', 'content', 'creation_date'];
-
+    // Relaciones
     public function topic()
     {
         return $this->belongsTo(Topic::class);
@@ -26,40 +23,56 @@ class Answer extends Model
         return $this->belongsTo(User::class, 'users_id');
     }
 
+    // Configuración para consultas
+    protected $allowFilter = ['id', 'content', 'creation_date', 'topic_id', 'users_id'];
+    protected $allowSort = ['id', 'content', 'creation_date', 'created_at'];
+
+    protected function getAllowIncluded()
+    {
+        return ['topic', 'user'];
+    }
+
+    // Scopes para consultas anidadas
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) return;
+        $allowIncluded = $this->getAllowIncluded();
 
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-
-        foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+        if (!request()->filled('included')) {
+            return $query;
         }
 
-        $query->with($relations);
+        $relations = explode(',', request('included'));
+
+        $filtered = array_filter($relations, function ($relation) use ($allowIncluded) {
+            $root = explode('.', $relation)[0];
+            return in_array($root, $allowIncluded);
+        });
+
+        return $query->with($filtered);
     }
 
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) return;
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return;
+        }
 
         $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
-            if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+            if (in_array($column, $this->allowFilter)) {
+                $query->where($column, 'LIKE', '%' . $value . '%');
             }
         }
     }
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) return;
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return;
+        }
 
         $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
 
         foreach ($sortFields as $field) {
             $direction = 'asc';
@@ -68,7 +81,7 @@ class Answer extends Model
                 $field = substr($field, 1);
             }
 
-            if ($allowSort->contains($field)) {
+            if (in_array($field, $this->allowSort)) {
                 $query->orderBy($field, $direction);
             }
         }
@@ -78,9 +91,10 @@ class Answer extends Model
     {
         if (request('perPage')) {
             $perPage = intval(request('perPage'));
-            return $query->paginate($perPage);
+            if ($perPage) {
+                return $query->paginate($perPage);
+            }
         }
-
         return $query->get();
     }
 }

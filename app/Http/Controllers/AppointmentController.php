@@ -9,16 +9,30 @@ class AppointmentController extends Controller
 {
     public function index()
     {
-        $appointments = Appointment::included()->filter()->sort()->getOrPaginate();
-        return response()->json($appointments);
+        $query = Appointment::query();
+        
+        // Filtro adicional por rango de fechas
+        if (request('start_date') && request('end_date')) {
+            $query->whereBetween('date', [
+                request('start_date'),
+                request('end_date')
+            ]);
+        }
+        
+        // Filtro por estado si está presente
+        if (request('status_filter')) {
+            $query->where('status', request('status_filter'));
+        }
+        
+        return $query->included()->filter()->sort()->getOrPaginate();
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,completed,cancelled',
             'date' => 'required|date',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:500',
             'user_id' => 'required|exists:users,id',
             'veterinarian_id' => 'required|exists:veterinarians,id',
             'service_id' => 'required|exists:services,id',
@@ -27,22 +41,22 @@ class AppointmentController extends Controller
             'pet_id' => 'nullable|exists:pets,id',
         ]);
 
-        $appointment = Appointment::create($request->all());
+        $appointment = Appointment::create($validated);
         return response()->json($appointment, 201);
     }
 
     public function show($id)
     {
-        $appointment = Appointment::with(['user', 'veterinarian', 'service', 'schedule', 'trainer', 'pet'])->findOrFail($id);
+        $appointment = Appointment::included()->findOrFail($id);
         return response()->json($appointment);
     }
 
     public function update(Request $request, Appointment $appointment)
     {
-        $request->validate([
+        $validated = $request->validate([
             'status' => 'sometimes|in:pending,confirmed,completed,cancelled',
             'date' => 'sometimes|date',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:500',
             'user_id' => 'sometimes|exists:users,id',
             'veterinarian_id' => 'sometimes|exists:veterinarians,id',
             'service_id' => 'sometimes|exists:services,id',
@@ -51,13 +65,13 @@ class AppointmentController extends Controller
             'pet_id' => 'nullable|exists:pets,id',
         ]);
 
-        $appointment->update($request->all());
+        $appointment->update($validated);
         return response()->json($appointment);
     }
 
     public function destroy(Appointment $appointment)
     {
         $appointment->delete();
-        return response()->json(['message' => 'Appointment deleted']);
+        return response()->json(null, 204);
     }
 }

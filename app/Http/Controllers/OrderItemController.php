@@ -2,52 +2,58 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\OrderItem;
+use Illuminate\Http\Request;
 
 class OrderItemController extends Controller
 {
     public function index()
-    {
-        $items = OrderItem::included()->filter()->sort()->getOrPaginate();
-        return response()->json($items);
+{
+    $query = OrderItem::query();
+
+    //  Si viene un parámetro "order_status", aplicar el filtro
+    if (request('order_status')) {
+        $query->whereOrderStatus(request('order_status'));
     }
+   
+    //  Luego encadenar los otros scopes
+    return $query->included()->filter()->sort()->getOrPaginate();
+}
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'order_id' => 'required|exists:orders,id',
-            'product_id' => 'required|exists:products,id',
+            'price' => 'required|numeric|min:0',
+            'order_id' => 'nullable|exists:orders,id',
+            'product_id' => 'nullable|exists:products,id',
         ]);
 
-        $item = OrderItem::create($request->all());
-        return response()->json($item, 201);
+        return OrderItem::create($validated);
     }
 
-    public function show($id)
+    public function show(OrderItem $orderItem)
     {
-        $item = OrderItem::with(['order', 'product'])->findOrFail($id);
-        return response()->json($item);
+        return $orderItem->load(['order', 'product']);
     }
 
     public function update(Request $request, OrderItem $orderItem)
     {
-        $request->validate([
-            'quantity' => 'sometimes|required|integer|min:1',
-            'unit_price' => 'sometimes|required|numeric|min:0',
-            'order_id' => 'sometimes|required|exists:orders,id',
-            'product_id' => 'sometimes|required|exists:products,id',
+        $validated = $request->validate([
+            'quantity' => 'sometimes|integer|min:1',
+            'price' => 'sometimes|numeric|min:0',
+            'order_id' => 'nullable|exists:orders,id',
+            'product_id' => 'nullable|exists:products,id',
         ]);
 
-        $orderItem->update($request->all());
-        return response()->json($orderItem);
+        $orderItem->update($validated);
+        return $orderItem;
     }
 
     public function destroy(OrderItem $orderItem)
     {
         $orderItem->delete();
-        return response()->json(['message' => 'OrderItem deleted']);
+        return response()->noContent();
     }
 }
+                                                                                                                      

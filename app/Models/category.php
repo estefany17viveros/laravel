@@ -2,55 +2,76 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Category extends Model
 {
     use HasFactory;
 
     protected $fillable = ['name', 'description'];
+    
+    // Configuración para consultas
+    protected $allowFilter = ['id', 'name', 'description'];
+    protected $allowSort = ['id', 'name', 'created_at'];
+    protected $allowIncluded = []; // No hay relaciones para incluir por defecto
 
-    protected $allowIncluded = [];
-    protected $allowFilter = ['id', 'name'];
-    protected $allowSort = ['id', 'name'];
+    // Si en el futuro agregas relaciones, puedes añadirlas aquí
+    // Ejemplo:
+    // public function products()
+    // {
+    //     return $this->hasMany(Product::class);
+    // }
+    // Y luego actualizar $allowIncluded = ['products'];
 
+    // Scopes para consultas anidadas
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) return;
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-        foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+        if (empty($this->allowIncluded) || empty(request('included'))) {
+            return $query;
         }
-        $query->with($relations);
+
+        $relations = explode(',', request('included'));
+
+        $filtered = array_filter($relations, function ($relation) {
+            return in_array($relation, $this->allowIncluded);
+        });
+
+        return $query->with($filtered);
     }
 
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) return;
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return;
+        }
+
         $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
+
         foreach ($filters as $column => $value) {
-            if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+            if (in_array($column, $this->allowFilter)) {
+                $query->where($column, 'LIKE', '%' . $value . '%');
             }
         }
     }
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) return;
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return;
+        }
+
         $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
+
         foreach ($sortFields as $field) {
             $direction = 'asc';
             if (str_starts_with($field, '-')) {
                 $direction = 'desc';
                 $field = substr($field, 1);
             }
-            if ($allowSort->contains($field)) {
+
+            if (in_array($field, $this->allowSort)) {
                 $query->orderBy($field, $direction);
             }
         }
@@ -58,6 +79,12 @@ class Category extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        return request('perPage') ? $query->paginate(intval(request('perPage'))) : $query->get();
+        if (request('perPage')) {
+            $perPage = intval(request('perPage'));
+            if ($perPage) {
+                return $query->paginate($perPage);
+            }
+        }
+        return $query->get();
     }
 }

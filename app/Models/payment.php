@@ -14,17 +14,25 @@ class Payment extends Model
         'amount',
         'date',
         'status',
-        'order_id',
+        'payable_id',
+        'payable_type',
+        'user_id',
         'payment_method_id',
     ];
 
-    protected $allowIncluded = ['order', 'paymentMethod'];
+    protected $allowIncluded = ['payable', 'user', 'paymentMethod'];
     protected $allowFilter = ['id', 'amount', 'date', 'status'];
     protected $allowSort = ['id', 'amount', 'date'];
 
-    public function order()
+    // ✅ Relaciones
+    public function payable()
     {
-        return $this->belongsTo(Order::class);
+        return $this->morphTo();
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function paymentMethod()
@@ -32,23 +40,27 @@ class Payment extends Model
         return $this->belongsTo(PaymentMethod::class);
     }
 
+    // ✅ Scope para incluir relaciones (soporta nested relations tipo payable.payments)
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) return;
+        if (empty($this->allowIncluded) || empty(request('included'))) {
+            return $query;
+        }
 
         $relations = explode(',', request('included'));
         $allowIncluded = collect($this->allowIncluded);
 
-        foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
-        }
+        $relations = array_filter($relations, fn($rel) => $allowIncluded->contains($rel));
 
-        $query->with($relations);
+        return $query->with($relations);
     }
 
+    // ✅ Scope para filtros dinámicos
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) return;
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return $query;
+        }
 
         $filters = request('filter');
         $allowFilter = collect($this->allowFilter);
@@ -58,11 +70,16 @@ class Payment extends Model
                 $query->where($column, 'LIKE', "%$value%");
             }
         }
+
+        return $query;
     }
 
+    // ✅ Scope para orden dinámico
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) return;
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return $query;
+        }
 
         $sortFields = explode(',', request('sort'));
         $allowSort = collect($this->allowSort);
@@ -78,8 +95,11 @@ class Payment extends Model
                 $query->orderBy($field, $direction);
             }
         }
+
+        return $query;
     }
 
+    // ✅ Scope para obtener todo o paginar
     public function scopeGetOrPaginate(Builder $query)
     {
         return request('perPage')

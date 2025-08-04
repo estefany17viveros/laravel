@@ -2,52 +2,80 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Order;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::included()->filter()->sort()->getOrPaginate();
-        return response()->json($orders);
+        $query = Order::query();
+        
+        // Filtro por rango de fechas
+        if (request('start_date') && request('end_date')) {
+            $query->whereBetween('order_date', [
+                request('start_date'),
+                request('end_date')
+            ]);
+        }
+        
+        // Filtro por rango de total
+        if (request('min_total') || request('max_total')) {
+            if (request('min_total')) {
+                $query->where('total', '>=', request('min_total'));
+            }
+            if (request('max_total')) {
+                $query->where('total', '<=', request('max_total'));
+            }
+        }
+        
+        // Filtro por estado de pago
+        if (request('payment_status')) {
+            $query->where('payment_status', request('payment_status'));
+        }
+        
+        return $query->included()->filter()->sort()->getOrPaginate();
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'total' => 'required|numeric|min:0',
-            'status' => 'required|string',
+            'status' => 'required|string|in:pending,processing,completed,cancelled',
             'order_date' => 'nullable|date',
             'user_id' => 'required|exists:users,id',
+            'payment_status' => 'nullable|string|in:pending,paid,failed',
+            'shipping_address' => 'nullable|string|max:500'
         ]);
 
-        $order = Order::create($request->all());
+        $order = Order::create($validated);
         return response()->json($order, 201);
     }
 
     public function show($id)
     {
-        $order = Order::with('user')->findOrFail($id);
+        $order = Order::included()->findOrFail($id);
         return response()->json($order);
     }
 
     public function update(Request $request, Order $order)
     {
-        $request->validate([
+        $validated = $request->validate([
             'total' => 'sometimes|numeric|min:0',
-            'status' => 'sometimes|string',
+            'status' => 'sometimes|string|in:pending,processing,completed,cancelled',
             'order_date' => 'sometimes|date|nullable',
             'user_id' => 'sometimes|exists:users,id',
+            'payment_status' => 'nullable|string|in:pending,paid,failed',
+            'shipping_address' => 'nullable|string|max:500'
         ]);
 
-        $order->update($request->all());
+        $order->update($validated);
         return response()->json($order);
     }
 
     public function destroy(Order $order)
     {
         $order->delete();
-        return response()->json(['message' => 'Order deleted']);
+        return response()->json(null, 204);
     }
 }

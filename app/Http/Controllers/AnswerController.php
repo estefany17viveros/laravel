@@ -1,7 +1,5 @@
 <?php
 
-// app/Http/Controllers/AnswerController.php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -11,45 +9,51 @@ class AnswerController extends Controller
 {
     public function index()
     {
-        $answers = Answer::included()->filter()->sort()->getOrPaginate();
-        return response()->json($answers);
+        $query = Answer::query();
+        
+        // Filtro adicional específico para respuestas si es necesario
+        if (request('topic_filter')) {
+            $query->where('topic_id', request('topic_filter'));
+        }
+        
+        return $query->included()->filter()->sort()->getOrPaginate();
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'content' => 'required|string',
             'creation_date' => 'required|date',
             'topic_id' => 'required|exists:topics,id',
             'users_id' => 'required|exists:users,id',
         ]);
 
-        $answer = Answer::create($request->all());
+        $answer = Answer::create($validated);
         return response()->json($answer, 201);
     }
 
     public function show($id)
     {
-        $answer = Answer::findOrFail($id);
+        $answer = Answer::included()->findOrFail($id);
         return response()->json($answer);
     }
 
     public function update(Request $request, Answer $answer)
     {
-        $request->validate([
+        $validated = $request->validate([
             'content' => 'sometimes|string',
             'creation_date' => 'sometimes|date',
             'topic_id' => 'sometimes|exists:topics,id',
             'users_id' => 'sometimes|exists:users,id',
         ]);
 
-        $answer->update($request->all());
+        $answer->update($validated);
         return response()->json($answer);
     }
 
     public function destroy(Answer $answer)
     {
         $answer->delete();
-        return response()->json(['message' => 'Answer deleted']);
+        return response()->json(null, 204);
     }
 }

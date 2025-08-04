@@ -2,91 +2,100 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-
-class OrderItem extends Model
+use Illuminate\Support\Str;
+class orderitem extends Model
 {
+    /** @use HasFactory<\Database\Factories\OrderitemFactory> */
     use HasFactory;
-    protected $table='orderitems';
-
     protected $fillable = [
-        'quantity',
-        'unit_price',
-        'order_id',
-        'product_id',
+        'quantity', // Quantity of the product in the order item
+        'price', // Price of the product
+        'order_id', // Foreign key to orders table
+        'product_id', // Foreign key to products table
     ];
-
-    protected $allowIncluded = ['order', 'product'];
-    protected $allowFilter = ['id', 'quantity', 'unit_price'];
-    protected $allowSort = ['id', 'quantity', 'unit_price'];
-
     public function order()
     {
-        return $this->belongsTo(Order::class);
-    }
-
+        return $this->belongsTo(order::class);
+}
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(product::class);
     }
+        protected $allowFilter = ['price', 'quantity'];
 
+      protected function getAllowIncluded()
+{
+    // Definir explícitamente las relaciones que se pueden incluir
+    return ['order', 'product'];
+}
+    // 🔍 Scope para permitir ?included=relacion1,relacion2
     public function scopeIncluded(Builder $query)
-    {
-        if (empty($this->allowIncluded) || empty(request('included'))) return;
+{
+    $allowIncluded = $this->getAllowIncluded();
 
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-
-        foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
-        }
-
-        $query->with($relations);
+    if (!request()->filled('included')) {
+        return $query;
     }
 
+    $relations = explode(',', request('included'));
+
+    // ✅ Filtra solo relaciones permitidas o que empiecen con una relación válida
+    $filtered = array_filter($relations, function ($relation) use ($allowIncluded) {
+        $root = explode('.', $relation)[0];
+        return in_array($root, $allowIncluded);
+    });
+
+    return $query->with($filtered);
+}
+
+    // 🔎 Scope para permitir ?filter[columna]=valor
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) return;
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return;
+        }
 
         $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
-            if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+            if (in_array($column, $this->allowFilter)) {
+                $query->where($column, 'LIKE', '%' . $value . '%');
             }
         }
+        
     }
-
-    public function scopeSort(Builder $query)
+      public function scopeGetOrPaginate(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) return;
+      if (request('perPage')) {
+            $perPage = intval(request('perPage'));//transformamos la cadena que llega en un numero.
 
-        $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
+            if($perPage){//como la funcion intval retorna 0 si no puede hacer la conversion 0  es = false
+                return $query->paginate($perPage);//retornamos la cuonsulta de acuerdo a la ingresado en la vaiable $perPage
             }
 
-            if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
-            }
-        }
+
+         }
+           return $query->get();//sino se pasa el valor de $perPage en la URL se pasan todos los registros.
+        //http://api.codersfree1.test/v1/categories?perPage=2
     }
 
-    public function scopeGetOrPaginate(Builder $query)
-    {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            return $query->paginate($perPage);
-        }
+      
+// App\Models\Forum.php
 
-        return $query->get();
-    }
+public function scopeSort($query)
+{
+    if (request()->has('sort_by') && request()->has('sort_direction')) {
+        $column = request('sort_by');
+        $direction = request('sort_direction');
+
+        // Validar columnas permitidas
+        $allowed = ['title', 'creation_date'];
+        if (in_array($column, $allowed)) {
+            return $query->orderBy($column, $direction);
+        }
+    }}
+
 }

@@ -9,41 +9,59 @@ class InventoryController extends Controller
 {
     public function index()
     {
-        $inventories = Inventory::included()->filter()->sort()->getOrPaginate();
-        return response()->json($inventories);
+        $query = Inventory::query();
+        
+        // Filtro adicional para stock bajo
+        if (request('low_stock')) {
+            $query->whereColumn('quantity_available', '<=', 'minimum_stock');
+        }
+        
+        // Filtro por rango de cantidades
+        if (request('min_quantity') && request('max_quantity')) {
+            $query->whereBetween('quantity_available', [
+                request('min_quantity'),
+                request('max_quantity')
+            ]);
+        }
+        
+        return $query->included()->filter()->sort()->getOrPaginate();
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'quantity_available' => 'required|integer|min:0',
             'product_id' => 'required|exists:products,id',
+            'minimum_stock' => 'nullable|integer|min:0',
+            'location' => 'nullable|string|max:100'
         ]);
 
-        $inventory = Inventory::create($request->all());
+        $inventory = Inventory::create($validated);
         return response()->json($inventory, 201);
     }
 
     public function show($id)
     {
-        $inventory = Inventory::with('product')->findOrFail($id);
+        $inventory = Inventory::included()->findOrFail($id);
         return response()->json($inventory);
     }
 
     public function update(Request $request, Inventory $inventory)
     {
-        $request->validate([
-            'quantity_available' => 'sometimes|required|integer|min:0',
-            'product_id' => 'sometimes|required|exists:products,id',
+        $validated = $request->validate([
+            'quantity_available' => 'sometimes|integer|min:0',
+            'product_id' => 'sometimes|exists:products,id',
+            'minimum_stock' => 'nullable|integer|min:0',
+            'location' => 'nullable|string|max:100'
         ]);
 
-        $inventory->update($request->all());
+        $inventory->update($validated);
         return response()->json($inventory);
     }
 
     public function destroy(Inventory $inventory)
     {
         $inventory->delete();
-        return response()->json(['message' => 'Inventory deleted']);
+        return response()->json(null, 204);
     }
 }

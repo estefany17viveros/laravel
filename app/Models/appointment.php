@@ -22,9 +22,10 @@ class Appointment extends Model
         'pet_id',
     ];
 
-    protected $allowIncluded = ['user', 'veterinarian', 'service', 'schedule', 'trainer', 'pet'];
-    protected $allowFilter = ['id', 'status', 'date'];
-    protected $allowSort = ['id', 'date', 'status'];
+    // Configuración para consultas
+    protected $allowFilter = ['id', 'status', 'date', 'user_id', 'veterinarian_id', 'service_id', 'pet_id'];
+    protected $allowSort = ['id', 'date', 'status', 'created_at'];
+    protected $dates = ['date']; // Para manejar automáticamente como Carbon
 
     // Relaciones
     public function user()
@@ -57,41 +58,57 @@ class Appointment extends Model
         return $this->belongsTo(Pet::class);
     }
 
-    // Scopes
+    protected function getAllowIncluded()
+    {
+        return ['user', 'veterinarian', 'service', 'schedule', 'trainer', 'pet'];
+    }
+
+    // Scopes para consultas anidadas
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) return;
+        $allowIncluded = $this->getAllowIncluded();
 
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-
-        foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+        if (!request()->filled('included')) {
+            return $query;
         }
 
-        $query->with($relations);
+        $relations = explode(',', request('included'));
+
+        $filtered = array_filter($relations, function ($relation) use ($allowIncluded) {
+            $root = explode('.', $relation)[0];
+            return in_array($root, $allowIncluded);
+        });
+
+        return $query->with($filtered);
     }
 
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) return;
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return;
+        }
 
         $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
-            if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+            if (in_array($column, $this->allowFilter)) {
+                // Manejo especial para fechas
+                if ($column === 'date') {
+                    $query->whereDate($column, $value);
+                } else {
+                    $query->where($column, 'LIKE', '%' . $value . '%');
+                }
             }
         }
     }
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) return;
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return;
+        }
 
         $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
 
         foreach ($sortFields as $field) {
             $direction = 'asc';
@@ -100,7 +117,7 @@ class Appointment extends Model
                 $field = substr($field, 1);
             }
 
-            if ($allowSort->contains($field)) {
+            if (in_array($field, $this->allowSort)) {
                 $query->orderBy($field, $direction);
             }
         }
@@ -109,9 +126,11 @@ class Appointment extends Model
     public function scopeGetOrPaginate(Builder $query)
     {
         if (request('perPage')) {
-            return $query->paginate(intval(request('perPage')));
+            $perPage = intval(request('perPage'));
+            if ($perPage) {
+                return $query->paginate($perPage);
+            }
         }
-
         return $query->get();
     }
 }

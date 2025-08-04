@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
-             $table->string('name');
-    $table->decimal('price', 8, 2);
-    $table->date('duration');
-    $table->text('description')->nullable();
-    $table->unsignedBigInteger('veterinarian_id')->nullable()->constrained('veterinarians')->ondelete('set null');
+            $table->string('name');
+            $table->decimal('price', 8, 2);
+            $table->date('duration');
+            $table->text('description')->nullable();
+            $table->unsignedBigInteger('veterinarian_id')->nullable()->constrained('veterinarians')->ondelete('set null');
    
     $table->unsignedBigInteger('trainer_id')->nullable()->constrained('trainers')->ondelete('set null');
    

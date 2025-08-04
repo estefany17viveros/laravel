@@ -15,51 +15,109 @@ class Order extends Model
         'status',
         'order_date',
         'user_id',
+        'payment_status', // Campo añadido
+        'shipping_address' // Campo añadido
     ];
 
-    protected $allowIncluded = ['user'];
-    protected $allowFilter = ['id', 'total', 'status', 'order_date'];
-    protected $allowSort = ['id', 'total', 'status', 'order_date'];
+    // Configuración para consultas
+    protected $allowFilter = [
+        'id',
+        'total',
+        'status',
+        'order_date',
+        'user_id',
+        'payment_status',
+        'created_at'
+    ];
+    
+    protected $allowSort = [
+        'id',
+        'total',
+        'order_date',
+        'created_at'
+    ];
+    
+    protected $allowIncluded = [
+        'user',
+        'orderItems', // Relación con items del pedido
+        'orderItems.product' // Relación anidada
+    ];
 
+    // Casts
+    protected $casts = [
+        'order_date' => 'datetime',
+        'total' => 'decimal:2'
+    ];
+
+    // Relaciones
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    // Scopes optimizados
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) return;
-
-        $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
-
-        foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+        if (empty($this->allowIncluded) || empty(request('included'))) {
+            return $query;
         }
 
-        $query->with($relations);
+        $relations = explode(',', request('included'));
+
+        $filtered = array_filter($relations, function ($relation) {
+            $root = explode('.', $relation)[0];
+            return in_array($root, $this->allowIncluded);
+        });
+
+        return $query->with($filtered);
     }
 
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) return;
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return;
+        }
 
         $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
-            if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+            if (in_array($column, $this->allowFilter)) {
+                // Manejo especial para fechas
+                if ($column === 'order_date') {
+                    $query->whereDate($column, $value);
+                } 
+                // Manejo especial para rangos numéricos
+                elseif ($column === 'total' && is_array($value)) {
+                    if (isset($value['min'])) {
+                        $query->where($column, '>=', $value['min']);
+                    }
+                    if (isset($value['max'])) {
+                        $query->where($column, '<=', $value['max']);
+                    }
+                } else {
+                    $query->where($column, 'LIKE', '%' . $value . '%');
+                }
             }
         }
     }
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) return;
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return;
+        }
 
         $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
 
         foreach ($sortFields as $field) {
             $direction = 'asc';
@@ -68,7 +126,7 @@ class Order extends Model
                 $field = substr($field, 1);
             }
 
-            if ($allowSort->contains($field)) {
+            if (in_array($field, $this->allowSort)) {
                 $query->orderBy($field, $direction);
             }
         }
@@ -78,9 +136,16 @@ class Order extends Model
     {
         if (request('perPage')) {
             $perPage = intval(request('perPage'));
-            return $query->paginate($perPage);
+            if ($perPage > 0) {
+                return $query->paginate($perPage);
+            }
         }
-
         return $query->get();
+    }
+
+    // Scope adicional para pedidos recientes
+    public function scopeRecent(Builder $query, $days = 30)
+    {
+        return $query->where('order_date', '>=', now()->subDays($days));
     }
 }

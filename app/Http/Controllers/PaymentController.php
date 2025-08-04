@@ -7,49 +7,72 @@ use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
-    public function index()
+    
+    public function index(Request $request)
     {
-        $payments = Payment::included()->filter()->sort()->getOrPaginate();
+        $payments = Payment::query()
+            ->included()      
+            ->filter()        
+            ->sort()          
+            ->getOrPaginate();
+
         return response()->json($payments);
     }
 
+    /**
+     *  Mostrar un pago específico con sus relaciones.
+     */
+    public function show(Payment $payment)
+    {
+        $payment->load(request('included', 'payable,paymentMethod'));
+
+        return response()->json($payment);
+    }
+
+    /**
+     *  Crear un nuevo pago polimórfico.
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'amount' => 'required|integer|min:0',
+        $data = $request->validate([
+            'amount' => 'required|integer',
             'date' => 'required|date',
             'status' => 'required|in:pending,confirmed,completed,cancelled',
-            'order_id' => 'required|exists:orders,id',
+            'payable_id' => 'required|integer',      
+            'payable_type' => 'required|string',     
             'payment_method_id' => 'required|exists:payment_methods,id',
         ]);
 
-        $payment = Payment::create($request->all());
+        //  Crea el pago polimórfico
+        $payment = Payment::create($data);
+
         return response()->json($payment, 201);
     }
 
-    public function show($id)
-    {
-        $payment = Payment::with(['order', 'paymentMethod'])->findOrFail($id);
-        return response()->json($payment);
-    }
-
+    /**
+     *  Actualizar un pago.
+     */
     public function update(Request $request, Payment $payment)
     {
-        $request->validate([
-            'amount' => 'sometimes|integer|min:0',
+        $data = $request->validate([
+            'amount' => 'sometimes|integer',
             'date' => 'sometimes|date',
             'status' => 'sometimes|in:pending,confirmed,completed,cancelled',
-            'order_id' => 'sometimes|exists:orders,id',
+            'payable_id' => 'sometimes|integer',
+            'payable_type' => 'sometimes|string',
             'payment_method_id' => 'sometimes|exists:payment_methods,id',
         ]);
 
-        $payment->update($request->all());
+        $payment->update($data);
+
         return response()->json($payment);
     }
 
+   
     public function destroy(Payment $payment)
     {
         $payment->delete();
+
         return response()->json(['message' => 'Payment deleted successfully']);
     }
 }
