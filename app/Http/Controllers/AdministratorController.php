@@ -10,8 +10,26 @@ class AdministratorController extends Controller
 {
     public function index()
     {
-        $administrators = Administrator::included()->filter()->sort()->getOrPaginate();
-        return response()->json($administrators);
+        $administrators = Administrator::included()  // Aplica el scope 'included', que carga relaciones si se pasan por la URL (por ejemplo, ?included=user).
+            ->filter()   // Aplica filtros si vienen en la URL
+            ->sort()    // Ordena los resultados si se indica en la URL (por ejemplo, ?sort=-email para ordenar por email descendente)
+            ->withUserEmail()              //  Consulta anidada: carga la relación con User para tener el email del usuario que pertenece al administrador
+            ->withAppointmentCount()      //  Consulta anidada: cuenta las citas que tiene el usuario relacionado y las agrega como total_appointment
+            ->getOrPaginate()  // Si viene Page en la URL, pagina los resultados. Si no, los trae todos.
+            ->map(function ($admin) { // Mapea cada administrador para devolver solo los campos necesarios en el JSON final
+                return [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'email' => $admin->email,
+                    'status' => $admin->status,
+                    'phone_number' => $admin->phone_number,
+                    'user_email' => optional($admin->user)->email, // Muestra el email del usuario si existe (relación belongsTo con User)
+                    'total_appointments' => $admin->total_appointments ?? 0, // Muestra la cantidad de citas que tiene el usuario. Si no hay, devuelve 0.
+            
+                ];
+            });
+
+        return response()->json($administrators); // Devuelve el JSON con los administradores procesados.
     }
 
     public function store(Request $request)
@@ -64,4 +82,5 @@ class AdministratorController extends Controller
         $administrator->delete();
         return response()->json(['message' => 'Administrator deleted successfully']);
     }
-}
+} 
+
