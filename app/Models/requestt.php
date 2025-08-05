@@ -21,8 +21,25 @@ class Requestt extends Model
     ];
 
     protected $allowIncluded = ['user', 'shelter', 'service', 'appointment'];
-    protected $allowFilter = ['id', 'priority', 'solicitation_status'];
-    protected $allowSort = ['id', 'priority', 'date'];
+    protected $allowFilter = [
+        'id', 
+        'priority', 
+        'solicitation_status',
+        'user.name',
+        'user.email',
+        'shelter.name',
+        'service.name',
+        'appointment.date'
+    ];
+    protected $allowSort = [
+        'id', 
+        'priority', 
+        'date',
+        'user.name',
+        'shelter.name',
+        'service.name',
+        'appointment.date'
+    ];
 
     public function user()
     {
@@ -52,7 +69,9 @@ class Requestt extends Model
         $allowIncluded = collect($this->allowIncluded);
 
         foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
         }
 
         $query->with($relations);
@@ -67,7 +86,15 @@ class Requestt extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+                // Verificar si es un filtro anidado (relación.campo)
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    $query->where($column, 'LIKE', "%$value%");
+                }
             }
         }
     }
@@ -87,7 +114,15 @@ class Requestt extends Model
             }
 
             if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
+                // Verificar si es un ordenamiento anidado (relación.campo)
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }

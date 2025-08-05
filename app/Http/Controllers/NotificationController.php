@@ -11,17 +11,14 @@ class NotificationController extends Controller
     {
         $query = Notification::query();
         
-        // Filtro adicional para notificaciones no leídas
         if (request('unread')) {
             $query->unread();
         }
         
-        // Filtro por tipo de notificación
         if (request('type')) {
             $query->where('type', request('type'));
         }
         
-        // Filtro por usuario específico
         if (request('user_id')) {
             $query->where('user_id', request('user_id'));
         }

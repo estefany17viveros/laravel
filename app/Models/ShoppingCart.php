@@ -13,14 +13,41 @@ class ShoppingCart extends Model
     protected $fillable = [
         'creation_date',
         'quantity',
+        'price',
+        'total',
         'user_id',
         'product_id',
         'order_id',
     ];
 
-    protected $allowIncluded = ['user', 'product', 'order'];
-    protected $allowFilter = ['id', 'creation_date', 'quantity'];
-    protected $allowSort = ['id', 'creation_date', 'quantity'];
+    protected $allowIncluded = ['user', 'product', 'order', 'product.category', 'user.profile'];
+    protected $allowFilter = [
+        'id',
+        'creation_date',
+        'quantity',
+        'price',
+        'total',
+        'user_id',
+        'product_id',
+        'order_id',
+        'user.name',
+        'user.email',
+        'product.name',
+        'product.price',
+        'product.category.name',
+        'order.status'
+    ];
+    protected $allowSort = [
+        'id',
+        'creation_date',
+        'quantity',
+        'price',
+        'total',
+        'user.name',
+        'product.name',
+        'product.price',
+        'order.created_at'
+    ];
 
     public function user()
     {
@@ -45,7 +72,9 @@ class ShoppingCart extends Model
         $allowIncluded = collect($this->allowIncluded);
 
         foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
         }
 
         $query->with($relations);
@@ -60,7 +89,22 @@ class ShoppingCart extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+                // Filtrado anidado para relaciones
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    // Manejo especial para campos numéricos y fechas
+                    if (in_array($column, ['quantity', 'price', 'total'])) {
+                        $query->where($column, $value);
+                    } elseif ($column === 'creation_date') {
+                        $query->whereDate($column, $value);
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
     }
@@ -80,18 +124,22 @@ class ShoppingCart extends Model
             }
 
             if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
+                // Ordenamiento anidado para relaciones
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            return $query->paginate($perPage);
-        }
-
-        return $query->get();
+        $perPage = request('perPage');
+        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
     }
 }

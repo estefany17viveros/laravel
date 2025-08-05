@@ -39,17 +39,17 @@ class Order extends Model
     
     protected $allowIncluded = [
         'user',
-        'orderItems', // Relación con items del pedido
-        'orderItems.product' // Relación anidada
+        'orderItems', 
+        'orderItems.product' 
     ];
 
-    // Casts
+    
     protected $casts = [
         'order_date' => 'datetime',
         'total' => 'decimal:2'
     ];
 
-    // Relaciones
+    
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -143,7 +143,6 @@ class Order extends Model
         return $query->get();
     }
 
-    // Scope adicional para pedidos recientes
     public function scopeRecent(Builder $query, $days = 30)
     {
         return $query->where('order_date', '>=', now()->subDays($days));

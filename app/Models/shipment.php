@@ -16,11 +16,37 @@ class Shipment extends Model
         'status',
         'shipping_method',
         'order_id',
+        'tracking_number',
+        'estimated_delivery',
+        'shipped_at',
     ];
 
-    protected $allowIncluded = ['order'];
-    protected $allowFilter = ['id', 'shipping_address', 'cost', 'status', 'shipping_method'];
-    protected $allowSort = ['id', 'cost', 'status', 'shipping_method'];
+    protected $allowIncluded = ['order', 'order.customer', 'order.items'];
+    protected $allowFilter = [
+        'id',
+        'shipping_address',
+        'cost',
+        'status',
+        'shipping_method',
+        'tracking_number',
+        'estimated_delivery',
+        'shipped_at',
+        'order.id',
+        'order.total_amount',
+        'order.status',
+        'order.customer.name',
+        'order.customer.email'
+    ];
+    protected $allowSort = [
+        'id',
+        'cost',
+        'status',
+        'shipping_method',
+        'estimated_delivery',
+        'shipped_at',
+        'order.created_at',
+        'order.total_amount'
+    ];
 
     public function order()
     {
@@ -35,7 +61,9 @@ class Shipment extends Model
         $allowIncluded = collect($this->allowIncluded);
 
         foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
         }
 
         $query->with($relations);
@@ -50,7 +78,22 @@ class Shipment extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+                // Filtrado anidado para relaciones
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    // Manejo especial para campos numéricos y fechas
+                    if (in_array($column, ['cost', 'order.total_amount'])) {
+                        $query->where($column, $value);
+                    } elseif (in_array($column, ['estimated_delivery', 'shipped_at'])) {
+                        $query->whereDate($column, $value);
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
     }
@@ -70,18 +113,22 @@ class Shipment extends Model
             }
 
             if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
+                // Ordenamiento anidado para relaciones
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            return $query->paginate($perPage);
-        }
-
-        return $query->get();
+        $perPage = request('perPage');
+        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
     }
 }

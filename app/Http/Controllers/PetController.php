@@ -9,7 +9,11 @@ class PetController extends Controller
 {
     public function index()
     {
-        $pets = Pet::included()->filter()->sort()->getOrPaginate();
+        $pets = Pet::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
+            
         return response()->json($pets);
     }
 
@@ -36,7 +40,7 @@ class PetController extends Controller
 
     public function show($id)
     {
-        $pet = Pet::with(['trainer', 'shelter', 'user', 'veterinarian'])->findOrFail($id);
+        $pet = Pet::included()->findOrFail($id);
         return response()->json($pet);
     }
 

@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Payment extends Model
 {
@@ -18,13 +18,42 @@ class Payment extends Model
         'payable_type',
         'user_id',
         'payment_method_id',
+        'transaction_id' // Campo añadido
     ];
 
-    protected $allowIncluded = ['payable', 'user', 'paymentMethod'];
-    protected $allowFilter = ['id', 'amount', 'date', 'status'];
-    protected $allowSort = ['id', 'amount', 'date'];
+    // Configuración para consultas
+    protected $allowFilter = [
+        'id',
+        'amount',
+        'date',
+        'status',
+        'user_id',
+        'payment_method_id',
+        'transaction_id',
+        'created_at'
+    ];
+    
+    protected $allowSort = [
+        'id',
+        'amount',
+        'date',
+        'created_at'
+    ];
+    
+    protected $allowIncluded = [
+        'payable',
+        'user',
+        'paymentMethod',
+        'payable.order' // Relación anidada hipotética
+    ];
 
-    // ✅ Relaciones
+    
+    protected $casts = [
+        'date' => 'datetime',
+        'amount' => 'decimal:2'
+    ];
+
+    
     public function payable()
     {
         return $this->morphTo();
@@ -40,7 +69,7 @@ class Payment extends Model
         return $this->belongsTo(PaymentMethod::class);
     }
 
-    // ✅ Scope para incluir relaciones (soporta nested relations tipo payable.payments)
+   
     public function scopeIncluded(Builder $query)
     {
         if (empty($this->allowIncluded) || empty(request('included'))) {
@@ -48,41 +77,51 @@ class Payment extends Model
         }
 
         $relations = explode(',', request('included'));
-        $allowIncluded = collect($this->allowIncluded);
 
-        $relations = array_filter($relations, fn($rel) => $allowIncluded->contains($rel));
+        $filtered = array_filter($relations, function ($relation) {
+            $root = explode('.', $relation)[0];
+            return in_array($root, $this->allowIncluded);
+        });
 
-        return $query->with($relations);
+        return $query->with($filtered);
     }
 
-    // ✅ Scope para filtros dinámicos
     public function scopeFilter(Builder $query)
     {
         if (empty($this->allowFilter) || empty(request('filter'))) {
-            return $query;
+            return;
         }
 
         $filters = request('filter');
-        $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
-            if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+            if (in_array($column, $this->allowFilter)) {
+                // Manejo especial para fechas
+                if ($column === 'date') {
+                    $query->whereDate($column, $value);
+                } 
+                // Manejo especial para rangos numéricos
+                elseif ($column === 'amount' && is_array($value)) {
+                    if (isset($value['min'])) {
+                        $query->where($column, '>=', $value['min']);
+                    }
+                    if (isset($value['max'])) {
+                        $query->where($column, '<=', $value['max']);
+                    }
+                } else {
+                    $query->where($column, 'LIKE', '%' . $value . '%');
+                }
             }
         }
-
-        return $query;
     }
 
-    // ✅ Scope para orden dinámico
     public function scopeSort(Builder $query)
     {
         if (empty($this->allowSort) || empty(request('sort'))) {
-            return $query;
+            return;
         }
 
         $sortFields = explode(',', request('sort'));
-        $allowSort = collect($this->allowSort);
 
         foreach ($sortFields as $field) {
             $direction = 'asc';
@@ -91,19 +130,30 @@ class Payment extends Model
                 $field = substr($field, 1);
             }
 
-            if ($allowSort->contains($field)) {
+            if (in_array($field, $this->allowSort)) {
                 $query->orderBy($field, $direction);
             }
         }
-
-        return $query;
     }
 
-    // ✅ Scope para obtener todo o paginar
     public function scopeGetOrPaginate(Builder $query)
     {
-        return request('perPage')
-            ? $query->paginate((int) request('perPage'))
-            : $query->get();
+        if (request('perPage')) {
+            $perPage = intval(request('perPage'));
+            if ($perPage > 0) {
+                return $query->paginate($perPage);
+            }
+        }
+        return $query->get();
+    }
+
+    public function scopeRecent(Builder $query, $days = 30)
+    {
+        return $query->where('date', '>=', now()->subDays($days));
+    }
+
+    public function scopeStatus(Builder $query, $status)
+    {
+        return $query->where('status', $status);
     }
 }

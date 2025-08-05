@@ -11,7 +11,6 @@ class AdoptionController extends Controller
     {
         $query = Adoption::query();
 
-        // Filtro adicional específico para Adoption si es necesario
         if (request('status_filter')) {
             $query->where('status', request('status_filter'));
         }

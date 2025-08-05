@@ -9,7 +9,11 @@ class RequesttController extends Controller
 {
     public function index()
     {
-        $requestts = Requestt::included()->filter()->sort()->getOrPaginate();
+        $requestts = Requestt::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
+            
         return response()->json($requestts);
     }
 
@@ -31,7 +35,7 @@ class RequesttController extends Controller
 
     public function show($id)
     {
-        $requestt = Requestt::with(['user', 'shelter', 'service', 'appointment'])->findOrFail($id);
+        $requestt = Requestt::included()->findOrFail($id);
         return response()->json($requestt);
     }
 

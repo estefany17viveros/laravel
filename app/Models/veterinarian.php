@@ -18,16 +18,55 @@ class Veterinarian extends Model
         'experience',
         'qualifications',
         'biography',
+        'license_number',
+        'consultation_fee',
+        'availability',
         'user_id',
         'shelter_id'
     ];
 
-    // Listas blancas
-    protected $allowIncluded = ['user', 'shelter', 'appointments', 'pets'];
-    protected $allowFilter = ['id', 'name', 'email', 'specialty'];
-    protected $allowSort = ['id', 'name', 'email', 'specialty'];
+    protected $allowIncluded = [
+        'user', 
+        'user.profile',
+        'shelter',
+        'shelter.location',
+        'appointments',
+        'appointments.pet',
+        'pets',
+        'pets.owner'
+    ];
 
-    // Relaciones
+    protected $allowFilter = [
+        'id',
+        'name',
+        'email',
+        'phone',
+        'specialty',
+        'experience',
+        'license_number',
+        'consultation_fee',
+        'availability',
+        'user.name',
+        'user.email',
+        'shelter.name',
+        'shelter.city',
+        'appointments.status',
+        'appointments.date',
+        'pets.species'
+    ];
+
+    protected $allowSort = [
+        'id',
+        'name',
+        'email',
+        'specialty',
+        'experience',
+        'consultation_fee',
+        'user.created_at',
+        'shelter.name',
+        'appointments.date'
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -48,12 +87,9 @@ class Veterinarian extends Model
         return $this->hasMany(Pet::class);
     }
 
-    // Scope para relaciones incluidas desde query string
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
-            return;
-        }
+        if (empty($this->allowIncluded) || empty(request('included'))) return;
 
         $relations = explode(',', request('included'));
         $allowIncluded = collect($this->allowIncluded);
@@ -67,58 +103,65 @@ class Veterinarian extends Model
         $query->with($relations);
     }
 
-    // Scope para filtros desde query string
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
-        }
+        if (empty($this->allowFilter) || empty(request('filter'))) return;
 
         $filters = request('filter');
         $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', '%' . $value . '%');
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        if ($relation === 'appointments' && $field === 'date') {
+                            $q->whereDate($field, $value);
+                        } else {
+                            $q->where($field, 'LIKE', "%$value%");
+                        }
+                    });
+                } else {
+                    if (in_array($column, ['consultation_fee', 'experience'])) {
+                        $query->where($column, '>=', $value);
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
     }
 
-    // Scope para ordenamiento desde query string
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
-        }
+        if (empty($this->allowSort) || empty(request('sort'))) return;
 
         $sortFields = explode(',', request('sort'));
         $allowSort = collect($this->allowSort);
 
-        foreach ($sortFields as $sortField) {
+        foreach ($sortFields as $field) {
             $direction = 'asc';
-
-            if (substr($sortField, 0, 1) == '-') {
+            if (str_starts_with($field, '-')) {
                 $direction = 'desc';
-                $sortField = substr($sortField, 1);
+                $field = substr($field, 1);
             }
 
-            if ($allowSort->contains($sortField)) {
-                $query->orderBy($sortField, $direction);
+            if ($allowSort->contains($field)) {
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }
 
-    // Scope para paginación
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-
-            if ($perPage) {
-                return $query->paginate($perPage);
-            }
-        }
-
-        return $query->get();
+        $perPage = request('perPage');
+        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
     }
 }

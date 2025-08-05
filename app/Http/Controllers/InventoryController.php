@@ -11,12 +11,10 @@ class InventoryController extends Controller
     {
         $query = Inventory::query();
         
-        // Filtro adicional para stock bajo
         if (request('low_stock')) {
             $query->whereColumn('quantity_available', '<=', 'minimum_stock');
         }
         
-        // Filtro por rango de cantidades
         if (request('min_quantity') && request('max_quantity')) {
             $query->whereBetween('quantity_available', [
                 request('min_quantity'),

@@ -11,7 +11,6 @@ class AnswerController extends Controller
     {
         $query = Answer::query();
         
-        // Filtro adicional específico para respuestas si es necesario
         if (request('topic_filter')) {
             $query->where('topic_id', request('topic_filter'));
         }

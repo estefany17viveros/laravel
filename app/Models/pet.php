@@ -26,8 +26,8 @@ class Pet extends Model
     ];
 
     protected $allowIncluded = ['trainer', 'shelter', 'user', 'veterinarian'];
-    protected $allowFilter = ['id', 'name', 'species', 'breed', 'sex'];
-    protected $allowSort = ['id', 'name', 'age', 'size'];
+    protected $allowFilter = ['id', 'name', 'species', 'breed', 'sex', 'trainer.name', 'shelter.name', 'user.name', 'veterinarian.name'];
+    protected $allowSort = ['id', 'name', 'age', 'size', 'trainer.name', 'shelter.name', 'user.name', 'veterinarian.name'];
 
     // Relaciones
     public function trainer()
@@ -59,7 +59,9 @@ class Pet extends Model
         $allowIncluded = collect($this->allowIncluded);
 
         foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
         }
 
         $query->with($relations);
@@ -74,7 +76,15 @@ class Pet extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+                // Verificar si es un filtro anidado (relación.campo)
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    $query->where($column, 'LIKE', "%$value%");
+                }
             }
         }
     }
@@ -94,7 +104,15 @@ class Pet extends Model
             }
 
             if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
+                // Verificar si es un ordenamiento anidado (relación.campo)
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }

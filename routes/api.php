@@ -35,6 +35,8 @@ Route::apiResource('inventories', InventoryController::class);
 Route::apiResource('orderitems', OrderItemController::class);
 Route::apiResource('payments', PaymentController::class);
 Route::apiResource('paymentmethos', PaymentMethodController::class);
+Route::apiResource('users', UserController::class);
+
 
 
 // Route::get('/order-items', [OrderItemController::class, 'index']);

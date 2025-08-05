@@ -9,7 +9,11 @@ class ScheduleController extends Controller
 {
     public function index()
     {
-        $schedules = Schedule::included()->filter()->sort()->getOrPaginate();
+        $schedules = Schedule::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
+            
         return response()->json($schedules);
     }
 
@@ -28,7 +32,7 @@ class ScheduleController extends Controller
 
     public function show($id)
     {
-        $schedule = Schedule::with('service')->findOrFail($id);
+        $schedule = Schedule::included()->findOrFail($id);
         return response()->json($schedule);
     }
 

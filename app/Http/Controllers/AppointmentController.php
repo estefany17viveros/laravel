@@ -11,7 +11,6 @@ class AppointmentController extends Controller
     {
         $query = Appointment::query();
         
-        // Filtro adicional por rango de fechas
         if (request('start_date') && request('end_date')) {
             $query->whereBetween('date', [
                 request('start_date'),

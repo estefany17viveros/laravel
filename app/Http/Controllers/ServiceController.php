@@ -9,7 +9,11 @@ class ServiceController extends Controller
 {
     public function index()
     {
-        $services = Service::included()->filter()->sort()->getOrPaginate();
+        $services = Service::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
+            
         return response()->json($services);
     }
 
@@ -31,7 +35,7 @@ class ServiceController extends Controller
 
     public function show($id)
     {
-        $service = Service::with(['veterinarian', 'trainer', 'requestt'])->findOrFail($id);
+        $service = Service::included()->findOrFail($id);
         return response()->json($service);
     }
 

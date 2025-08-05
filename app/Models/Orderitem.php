@@ -8,13 +8,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 class orderitem extends Model
 {
-    /** @use HasFactory<\Database\Factories\OrderitemFactory> */
     use HasFactory;
     protected $fillable = [
-        'quantity', // Quantity of the product in the order item
-        'price', // Price of the product
-        'order_id', // Foreign key to orders table
-        'product_id', // Foreign key to products table
+        'quantity', 
+        'price', 
+        'order_id', 
+        'product_id', 
     ];
     public function order()
     {
@@ -42,7 +41,6 @@ class orderitem extends Model
 
     $relations = explode(',', request('included'));
 
-    // ✅ Filtra solo relaciones permitidas o que empiecen con una relación válida
     $filtered = array_filter($relations, function ($relation) use ($allowIncluded) {
         $root = explode('.', $relation)[0];
         return in_array($root, $allowIncluded);
@@ -51,7 +49,6 @@ class orderitem extends Model
     return $query->with($filtered);
 }
 
-    // 🔎 Scope para permitir ?filter[columna]=valor
     public function scopeFilter(Builder $query)
     {
         if (empty($this->allowFilter) || empty(request('filter'))) {

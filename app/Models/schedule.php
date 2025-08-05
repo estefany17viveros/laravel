@@ -18,8 +18,21 @@ class Schedule extends Model
     ];
 
     protected $allowIncluded = ['service'];
-    protected $allowFilter = ['id', 'date', 'hour', 'location'];
-    protected $allowSort = ['id', 'date', 'hour', 'location'];
+    protected $allowFilter = [
+        'id', 
+        'date', 
+        'hour', 
+        'location',
+        'service.name',
+        'service.description'
+    ];
+    protected $allowSort = [
+        'id', 
+        'date', 
+        'hour', 
+        'location',
+        'service.name'
+    ];
 
     public function service()
     {
@@ -34,7 +47,9 @@ class Schedule extends Model
         $allowIncluded = collect($this->allowIncluded);
 
         foreach ($relations as $key => $relation) {
-            if (!$allowIncluded->contains($relation)) unset($relations[$key]);
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
         }
 
         $query->with($relations);
@@ -49,7 +64,20 @@ class Schedule extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                $query->where($column, 'LIKE', "%$value%");
+                // Verificar si es un filtro anidado (relación.campo)
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    // Para campos de fecha, buscar coincidencia exacta
+                    if ($column === 'date') {
+                        $query->whereDate($column, $value);
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
     }
@@ -69,7 +97,15 @@ class Schedule extends Model
             }
 
             if ($allowSort->contains($field)) {
-                $query->orderBy($field, $direction);
+                // Verificar si es un ordenamiento anidado (relación.campo)
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }
@@ -77,7 +113,8 @@ class Schedule extends Model
     public function scopeGetOrPaginate(Builder $query)
     {
         if (request('perPage')) {
-            return $query->paginate(request('perPage'));
+            $perPage = intval(request('perPage'));
+            return $query->paginate($perPage);
         }
 
         return $query->get();
