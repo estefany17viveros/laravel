@@ -20,7 +20,7 @@ class Sock extends Model
         'description'
     ];
 
-    protected $allowIncluded = ['topic', 'topic.category', 'tags'];
+    protected $allowIncluded = ['topic', 'topic.category'];
     protected $allowFilter = [
         'id',
         'type',
@@ -30,7 +30,7 @@ class Sock extends Model
         'topic.id',
         'topic.name',
         'topic.category.name',
-        'tags.name'
+        
     ];
     protected $allowSort = [
         'id',
@@ -44,11 +44,6 @@ class Sock extends Model
     public function topic()
     {
         return $this->belongsTo(Topic::class);
-    }
-
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class);
     }
 
     public function scopeIncluded(Builder $query)

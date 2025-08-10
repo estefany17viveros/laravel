@@ -42,7 +42,6 @@ class Topic extends Model
         'forum.id',
         'forum.name',
         'forum.category.name',
-        'tags.name'
     ];
 
     protected $allowSort = [
@@ -54,7 +53,6 @@ class Topic extends Model
         'last_activity',
         'user.name',
         'forum.name',
-        'posts_count'
     ];
 
     public function user()
@@ -65,16 +63,6 @@ class Topic extends Model
     public function forum()
     {
         return $this->belongsTo(Forum::class);
-    }
-
-    public function posts()
-    {
-        return $this->hasMany(Post::class);
-    }
-
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class);
     }
 
     public function scopeIncluded(Builder $query)

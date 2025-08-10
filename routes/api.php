@@ -36,6 +36,10 @@ Route::apiResource('orderitems', OrderItemController::class);
 Route::apiResource('payments', PaymentController::class);
 Route::apiResource('paymentmethos', PaymentMethodController::class);
 Route::apiResource('users', UserController::class);
+Route::apiResource('socks', SockController::class);
+Route::apiResource('roles', RoleController::class);
+
+
 
 
 

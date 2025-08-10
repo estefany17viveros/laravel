@@ -56,6 +56,10 @@ class User extends Authenticatable
     {
         return $this->morphMany(Payment::class, 'payable');
     }
+     public function roles()
+    {
+        return $this->morphMany(Role::class, 'roleable');
+    }
 
     
 
@@ -75,7 +79,7 @@ class User extends Authenticatable
             'notifications',
             'requestts',
             'pets',
-            'pets.type', // Ejemplo si la mascota tiene tipo
+            'pets.type', 
             'payments',
             'profile',
         ];

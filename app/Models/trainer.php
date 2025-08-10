@@ -77,6 +77,10 @@ class Trainer extends Model
     {
         return $this->hasMany(Service::class);
     }
+     public function roles()
+    {
+        return $this->morphMany(Role::class, 'roleable');
+    }
 
     public function scopeIncluded(Builder $query)
     {

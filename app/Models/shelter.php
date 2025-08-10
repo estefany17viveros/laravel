@@ -42,6 +42,10 @@ class Shelter extends Model
     {
         return $this->hasMany(Pet::class);
     }
+     public function roles()
+    {
+        return $this->morphMany(Role::class, 'roleable');
+    }
 
     public function scopeIncluded(Builder $query)
     {
