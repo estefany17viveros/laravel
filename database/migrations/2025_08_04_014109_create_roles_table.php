@@ -10,9 +10,13 @@ return new class extends Migration
     {
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
-            $table->string('name_role');
-            $table->string('description');
-            $table->morphs('roleable'); // roleable_id y roleable_type
+            $table->enum('type', [ // tipos de roles 
+                'admin',
+                'subadmin', 
+                'customer',
+                'veterinarian',
+                'trainer'
+            ])->default('customer'); 
             $table->timestamps();
         });
     }

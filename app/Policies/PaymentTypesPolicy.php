@@ -2,11 +2,11 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use App\Models\type;
+use App\Models\Payment_Types;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
-class TypePolicy
+class PaymentTypesPolicy
 {
     /**
      * Determine whether the user can view any models.
@@ -19,7 +19,7 @@ class TypePolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, type $type): bool
+    public function view(User $user, Payment_Types $paymentTypes): bool
     {
         return false;
     }
@@ -35,7 +35,7 @@ class TypePolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, type $type): bool
+    public function update(User $user, Payment_Types $paymentTypes): bool
     {
         return false;
     }
@@ -43,7 +43,7 @@ class TypePolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, type $type): bool
+    public function delete(User $user, Payment_Types $paymentTypes): bool
     {
         return false;
     }
@@ -51,7 +51,7 @@ class TypePolicy
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, type $type): bool
+    public function restore(User $user, Payment_Types $paymentTypes): bool
     {
         return false;
     }
@@ -59,7 +59,7 @@ class TypePolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, type $type): bool
+    public function forceDelete(User $user, Payment_Types $paymentTypes): bool
     {
         return false;
     }

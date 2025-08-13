@@ -2,44 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
 
-class User extends Authenticatable
+class Usuario extends Model
 {
-    use HasFactory, Notifiable;
+    protected $table = 'usuarios';
 
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'profile_id',
-    ];
-
-  
-    public function forums()
+    // Relación con rol (1:1 inversa)
+    public function role()
     {
-        return $this->hasMany(Forum::class);
+        return $this->belongsTo(Role::class);
     }
 
-    
+    // Relaciones 1:N
+    public function pets()
+    {
+        return $this->hasMany(Pet::class);
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class);
     }
 
-    
     public function shoppingcart()
     {
-        return $this->hasOne(Shoppingcar::class);
+        return $this->hasMany(ShoppingCart::class);
     }
 
-    public function notifications()
+    public function forums()
     {
-        return $this->hasMany(Notification::class);
+        return $this->hasMany(Forum::class);
     }
 
     public function requestts()
@@ -47,25 +40,27 @@ class User extends Authenticatable
         return $this->hasMany(Requestt::class);
     }
 
-    public function pets()
-    {
-        return $this->hasMany(Pet::class);
-    }
-
     public function payments()
     {
-        return $this->morphMany(Payment::class, 'payable');
+        return $this->hasMany(Payments::class);
     }
-     public function roles()
+
+    public function notifications()
     {
-        return $this->morphMany(Role::class, 'roleable');
+        return $this->hasMany(Notification::class);
     }
 
-    
+    // Relaciones 1:1
+    public function trainers()
+    {
+        return $this->hasOne(Trainer::class);
+    }
 
-    public function isAdmin() { return $this->role === 'admin'; }
-    public function isSubadmin() { return $this->role === 'subadmin'; }
-    public function isCustomer() { return $this->role === 'customer'; }
+    public function veterinarians()
+    {
+        return $this->hasOne(Veterinarian::class);
+    }
+    
 
    
     protected function getAllowIncluded()

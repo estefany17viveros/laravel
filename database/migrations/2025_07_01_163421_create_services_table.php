@@ -19,9 +19,9 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->unsignedBigInteger('veterinarian_id')->nullable()->constrained('veterinarians')->ondelete('set null');
    
-    $table->unsignedBigInteger('trainer_id')->nullable()->constrained('trainers')->ondelete('set null');
+           $table->unsignedBigInteger('trainer_id')->nullable()->constrained('trainers')->ondelete('set null');
    
-    $table->unsignedBigInteger('requestt_id')->nullable()->constrained('requestts')->ondelete('set null');
+           $table->unsignedBigInteger('requestt_id')->nullable()->constrained('requestts')->ondelete('set null');
    
             $table->timestamps();
         });

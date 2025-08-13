@@ -21,30 +21,29 @@ class Product extends Model
     ];
 
     //  Relaciones
-    public function category()
+    // Relaciones N:1
+    public function categories()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function veterinary()
+    public function veterinarians()
     {
-        return $this->belongsTo(Veterinary::class);
+        return $this->belongsTo(Veterinarian::class);
     }
 
-    public function shoppingcar()
+    // Relaciones 1:1
+    public function inventaries()
     {
-        return $this->belongsTo(Shoppingcar::class);
+        return $this->hasOne(Inventary::class);
     }
 
+    // Relaciones 1:N
     public function orderitems()
     {
         return $this->hasMany(Orderitem::class);
     }
 
-    public function inventories()
-    {
-        return $this->hasMany(Inventory::class);
-    }
 
     protected $allowIncluded = [
         'category',

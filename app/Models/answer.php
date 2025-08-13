@@ -10,91 +10,125 @@ class Answer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['content', 'creation_date', 'topic_id', 'users_id'];
+    protected $table = 'answers';
 
-    // Relaciones
-    public function topic()
+    /**
+     * Atributos asignables
+     */
+    protected $fillable = [
+        'content', // Campo del diagrama original
+        'creation_date', // Campo del diagrama original
+        'topic_id', // Relación con temas
+    ];
+
+    /**
+     * Campos permitidos para filtrado
+     */
+    protected $allowedFilters = [
+        'id',
+        'Content',
+        'creation_date',
+        'topic_id'
+    ];
+
+    /**
+     * Campos permitidos para ordenamiento
+     */
+    protected $allowedSorts = [
+        'id',
+        'creation_date',
+        'created_at'
+    ];
+
+    /**
+     * Relaciones permitidas para inclusión
+     */
+    protected $allowedIncludes = [
+        'topic',
+        'socks' // Relación adicional del diagrama
+    ];
+
+   
+    public function topics()
     {
-        return $this->belongsTo(Topic::class);
+        return $this->belongsTo(Topic::class); // Usando claves del diagrama
     }
 
-    public function user()
+   
+    public function users()
     {
-        return $this->belongsTo(User::class, 'users_id');
+        return $this->belongsTo(User::class);
     }
 
-    // Configuración para consultas
-    protected $allowFilter = ['id', 'content', 'creation_date', 'topic_id', 'users_id'];
-    protected $allowSort = ['id', 'content', 'creation_date', 'created_at'];
-
-    protected function getAllowIncluded()
+  
+    public function socks()
     {
-        return ['topic', 'user'];
+        return $this->hasMany(Sock::class);
     }
 
-    // Scopes para consultas anidadas
     public function scopeIncluded(Builder $query)
     {
-        $allowIncluded = $this->getAllowIncluded();
-
-        if (!request()->filled('included')) {
+        if (empty($this->allowedIncludes) || !request()->has('include')) {
             return $query;
         }
 
-        $relations = explode(',', request('included'));
+        $relations = explode(',', request('include'));
 
-        $filtered = array_filter($relations, function ($relation) use ($allowIncluded) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $allowIncluded);
-        });
+        $validIncludes = collect($relations)->filter(function ($relation) {
+            return in_array($relation, $this->allowedIncludes);
+        })->toArray();
 
-        return $query->with($filtered);
+        return $query->with($validIncludes);
     }
 
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        if (empty($this->allowedFilters) || !request()->has('filter')) {
+            return $query;
         }
 
         $filters = request('filter');
 
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                $query->where($column, 'LIKE', '%' . $value . '%');
+        foreach ($filters as $filter => $value) {
+            if (in_array($filter, $this->allowedFilters)) {
+                $query->where($filter, 'LIKE', "%{$value}%");
             }
         }
+
+        return $query;
     }
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
+        if (empty($this->allowedSorts) || !request()->has('sort')) {
+            return $query;
         }
 
         $sortFields = explode(',', request('sort'));
 
-        foreach ($sortFields as $field) {
+        foreach ($sortFields as $sortField) {
             $direction = 'asc';
-            if (str_starts_with($field, '-')) {
+            
+            if (str_starts_with($sortField, '-')) {
                 $direction = 'desc';
-                $field = substr($field, 1);
+                $sortField = substr($sortField, 1);
             }
 
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
+            if (in_array($sortField, $this->allowedSorts)) {
+                $query->orderBy($sortField, $direction);
             }
         }
+
+        return $query;
     }
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage) {
-                return $query->paginate($perPage);
-            }
+        if (request()->has('per_page')) {
+            $perPage = intval(request('per_page'));
+            return $query->paginate($perPage);
         }
+
         return $query->get();
     }
 }

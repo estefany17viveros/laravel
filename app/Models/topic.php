@@ -64,6 +64,15 @@ class Topic extends Model
     {
         return $this->belongsTo(Forum::class);
     }
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tag::class,
+            'topic_tags', 
+            'id_topics',        
+            'id_tags'    
+        );
+    }
 
     public function scopeIncluded(Builder $query)
     {

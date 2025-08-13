@@ -3,148 +3,143 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Order extends Model
 {
     use HasFactory;
 
+    protected $table = 'orders';
+
+   
     protected $fillable = [
-        'total',
-        'status',
-        'order_date',
-        'user_id',
-        'payment_status', // Campo añadido
-        'shipping_address' // Campo añadido
+        'total',          
+        'status',         
+        'order_date',  
+        'user_id'      
     ];
 
-    // Configuración para consultas
-    protected $allowFilter = [
+  
+    protected $allowedFilters = [
         'id',
         'total',
         'status',
         'order_date',
-        'user_id',
-        'payment_status',
-        'created_at'
+        'user_id'
     ];
-    
-    protected $allowSort = [
+
+    protected $allowedSorts = [
         'id',
         'total',
         'order_date',
         'created_at'
     ];
-    
-    protected $allowIncluded = [
+
+    protected $allowedIncludes = [
         'user',
-        'orderItems', 
-        'orderItems.product' 
+        'shipping',
+        'order_items',
+        'payments'
     ];
 
-    
-    protected $casts = [
-        'order_date' => 'datetime',
-        'total' => 'decimal:2'
-    ];
-
-    
-    public function user()
+   
+    public function users(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function orderItems()
+    public function shipping()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasOne(Shipping::class);
     }
 
-    public function payment()
+    public function order_items(): HasMany
     {
-        return $this->hasOne(Payment::class);
+        return $this->hasMany(Orderitem::class);
     }
 
-    // Scopes optimizados
-    public function scopeIncluded(Builder $query)
+    public function payment_types()
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
+        return $this->morphOne(Payment_Types::class);
+    }
+
+    public function scopeIncluded(Builder $query): Builder
+    {
+        if (empty($this->allowedIncludes) || !request()->has('include')) {
             return $query;
         }
 
-        $relations = explode(',', request('included'));
+        $relations = explode(',', request('include'));
 
-        $filtered = array_filter($relations, function ($relation) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $this->allowIncluded);
-        });
+        $validIncludes = collect($relations)->filter(function ($relation) {
+            return in_array($relation, $this->allowedIncludes);
+        })->toArray();
 
-        return $query->with($filtered);
+        return $query->with($validIncludes);
     }
 
-    public function scopeFilter(Builder $query)
+    /**
+     * Scope para filtrar
+     */
+    public function scopeFilter(Builder $query): Builder
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        if (empty($this->allowedFilters) || !request()->has('filter')) {
+            return $query;
         }
 
         $filters = request('filter');
 
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                // Manejo especial para fechas
-                if ($column === 'order_date') {
-                    $query->whereDate($column, $value);
-                } 
-                // Manejo especial para rangos numéricos
-                elseif ($column === 'total' && is_array($value)) {
-                    if (isset($value['min'])) {
-                        $query->where($column, '>=', $value['min']);
-                    }
-                    if (isset($value['max'])) {
-                        $query->where($column, '<=', $value['max']);
-                    }
-                } else {
-                    $query->where($column, 'LIKE', '%' . $value . '%');
-                }
+        foreach ($filters as $filter => $value) {
+            if (in_array($filter, $this->allowedFilters)) {
+                $query->where($filter, 'LIKE', "%{$value}%");
             }
         }
+
+        return $query;
     }
 
-    public function scopeSort(Builder $query)
+    /**
+     * Scope para ordenar
+     */
+    public function scopeSort(Builder $query): Builder
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
+        if (empty($this->allowedSorts) || !request()->has('sort')) {
+            return $query;
         }
 
         $sortFields = explode(',', request('sort'));
 
-        foreach ($sortFields as $field) {
+        foreach ($sortFields as $sortField) {
             $direction = 'asc';
-            if (str_starts_with($field, '-')) {
+            
+            if (str_starts_with($sortField, '-')) {
                 $direction = 'desc';
-                $field = substr($field, 1);
+                $sortField = substr($sortField, 1);
             }
 
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
+            if (in_array($sortField, $this->allowedSorts)) {
+                $query->orderBy($sortField, $direction);
             }
         }
+
+        return $query;
     }
 
+    /**
+     * Scope para paginación
+     */
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage > 0) {
-                return $query->paginate($perPage);
-            }
+        if (request()->has('per_page')) {
+            $perPage = intval(request('per_page'));
+            return $query->paginate($perPage);
         }
+
         return $query->get();
     }
 
-    public function scopeRecent(Builder $query, $days = 30)
-    {
-        return $query->where('order_date', '>=', now()->subDays($days));
-    }
+   
 }

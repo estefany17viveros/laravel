@@ -4,156 +4,110 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class Payment extends Model
+class Pago extends Model
 {
-    use HasFactory;
-
+    protected $table = 'pagos';
+    
     protected $fillable = [
-        'amount',
-        'date',
-        'status',
-        'payable_id',
-        'payable_type',
         'user_id',
-        'payment_method_id',
-        'transaction_id' // Campo añadido
-    ];
-
-    // Configuración para consultas
-    protected $allowFilter = [
-        'id',
-        'amount',
         'date',
+        'cantidad',
         'status',
-        'user_id',
-        'payment_method_id',
-        'transaction_id',
-        'created_at'
+        'pagable_id',
+        'pagable_type'
     ];
-    
-    protected $allowSort = [
-        'id',
-        'amount',
-        'date',
-        'created_at'
-    ];
-    
-    protected $allowIncluded = [
-        'payable',
-        'user',
-        'paymentMethod',
-        'payable.order' // Relación anidada hipotética
-    ];
-
     
     protected $casts = [
         'date' => 'datetime',
-        'amount' => 'decimal:2'
+        'cantidad' => 'decimal:2'
     ];
-
     
-    public function payable()
+    // Relación polimórfica (para pedido, veterinaria, entrenador)
+    public function pagable(): MorphTo
     {
         return $this->morphTo();
     }
-
-    public function user()
+    
+    // Relación con usuario
+    public function usuario(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
-
-    public function paymentMethod()
+    
+    // Relación con método de pago
+    public function metodoPago(): BelongsTo
     {
-        return $this->belongsTo(PaymentMethod::class);
+        return $this->belongsTo(MetodoPago::class, 'metodo_pago_id');
     }
-
-   
-    public function scopeIncluded(Builder $query)
+    
+    // Scopes
+    public function scopeInclude(Builder $query, array $includes): Builder
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
-            return $query;
+        // Incluir relaciones
+        if (in_array('usuario', $includes)) {
+            $query->with('usuario');
         }
-
-        $relations = explode(',', request('included'));
-
-        $filtered = array_filter($relations, function ($relation) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $this->allowIncluded);
-        });
-
-        return $query->with($filtered);
-    }
-
-    public function scopeFilter(Builder $query)
-    {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        
+        if (in_array('metodoPago', $includes)) {
+            $query->with('metodoPago');
         }
-
-        $filters = request('filter');
-
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                // Manejo especial para fechas
-                if ($column === 'date') {
-                    $query->whereDate($column, $value);
-                } 
-                // Manejo especial para rangos numéricos
-                elseif ($column === 'amount' && is_array($value)) {
-                    if (isset($value['min'])) {
-                        $query->where($column, '>=', $value['min']);
-                    }
-                    if (isset($value['max'])) {
-                        $query->where($column, '<=', $value['max']);
-                    }
-                } else {
-                    $query->where($column, 'LIKE', '%' . $value . '%');
-                }
+        
+        if (in_array('pagable', $includes)) {
+            $query->with('pagable');
+        }
+        
+        return $query;
+    }
+    
+    public function scopeFilter(Builder $query, array $filters): Builder
+    {
+        foreach ($filters as $key => $value) {
+            if ($value === null) continue;
+            
+            switch ($key) {
+                case 'user_id':
+                    $query->where('user_id', $value);
+                    break;
+                case 'status':
+                    $query->where('status', $value);
+                    break;
+                case 'min_amount':
+                    $query->where('cantidad', '>=', $value);
+                    break;
+                case 'max_amount':
+                    $query->where('cantidad', '<=', $value);
+                    break;
+                case 'date_from':
+                    $query->where('date', '>=', $value);
+                    break;
+                case 'date_to':
+                    $query->where('date', '<=', $value);
+                    break;
+                case 'pagable_type':
+                    $query->where('pagable_type', $value);
+                    break;
             }
         }
+        
+        return $query;
     }
-
-    public function scopeSort(Builder $query)
+    
+    public function scopeSort(Builder $query, string $sortBy, string $sortDirection = 'asc'): Builder
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
+        $validSorts = ['date', 'cantidad', 'status', 'created_at'];
+        
+        if (in_array($sortBy, $validSorts)) {
+            return $query->orderBy($sortBy, $sortDirection);
         }
-
-        $sortFields = explode(',', request('sort'));
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
-            }
-
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
-            }
-        }
+        
+        return $query->orderBy('date', 'desc');
     }
-
-    public function scopeGetOrPaginate(Builder $query)
+    
+    public function scopeOrPaginate(Builder $query, int $perPage = 15): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage > 0) {
-                return $query->paginate($perPage);
-            }
-        }
-        return $query->get();
-    }
-
-    public function scopeRecent(Builder $query, $days = 30)
-    {
-        return $query->where('date', '>=', now()->subDays($days));
-    }
-
-    public function scopeStatus(Builder $query, $status)
-    {
-        return $query->where('status', $status);
+        return $query->paginate($perPage);
     }
 }

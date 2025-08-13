@@ -17,13 +17,8 @@ public function up(): void
         $table->timestamp('date');
         $table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled'])->default('pending');
 
-        // Relación polimórfica
-        $table->unsignedBigInteger('payable_id');
-        $table->string('payable_type');
-
         $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
 
-        $table->foreignId('payment_method_id')->constrained('payment_methods')->onDelete('cascade');
 
         $table->timestamps();
     });

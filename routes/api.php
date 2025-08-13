@@ -12,7 +12,6 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
 */
-Route::apiResource('administrators', AdministratorController::class);
 Route::apiResource('forums', ForumController::class);
 Route::apiResource('topics', TopicController::class);
 Route::apiResource('answers', AnswerController::class);

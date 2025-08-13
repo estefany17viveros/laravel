@@ -3,113 +3,120 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 
 class Inventory extends Model
 {
     use HasFactory;
 
+    protected $table = 'inventories';
+
+ 
     protected $fillable = [
-        'quantity_available',
-        'product_id',
-        'minimum_stock', // Añadido campo hipotético para ejemplo
-        'location' // Añadido campo hipotético para ejemplo
+        'product_id',            
+        'quantity_available',    
     ];
 
-    // Configuración para consultas
-    protected $allowFilter = [
-        'id',
-        'quantity_available',
-        'product_id',
-        'minimum_stock',
-        'location'
-    ];
     
-    protected $allowSort = [
+    protected $allowedFilters = [
         'id',
+        'product_is',
+        'quantity_available'
+    ];
+
+   
+    protected $allowedSorts = [
+        'id',
+        'producto_ID',
         'quantity_available',
-        'product_id',
         'created_at'
     ];
-    
-    protected $allowIncluded = [
-        'product',
-        'product.category' // Permitir relación anidada
+
+   
+    protected $allowedIncludes = [
+        'producto'
     ];
 
-    // Relaciones
-    public function product()
+    public function products()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Produc::class);
     }
 
-    // Scopes optimizados
+   
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
+        if (empty($this->allowedIncludes) || !request()->has('include')) {
             return $query;
         }
 
-        $relations = explode(',', request('included'));
+        $relations = explode(',', request('include'));
 
-        $filtered = array_filter($relations, function ($relation) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $this->allowIncluded);
-        });
+        $validIncludes = collect($relations)->filter(function ($relation) {
+            return in_array($relation, $this->allowedIncludes);
+        })->toArray();
 
-        return $query->with($filtered);
+        return $query->with($validIncludes);
     }
 
+    
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        if (empty($this->allowedFilters) || !request()->has('filter')) {
+            return $query;
         }
 
         $filters = request('filter');
 
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                // Manejo especial para búsquedas exactas en IDs
-                if (str_ends_with($column, '_id')) {
-                    $query->where($column, $value);
-                } else {
-                    $query->where($column, 'LIKE', '%' . $value . '%');
-                }
+        foreach ($filters as $filter => $value) {
+            if (in_array($filter, $this->allowedFilters)) {
+                $query->where($filter, 'LIKE', "%{$value}%");
             }
         }
+
+        return $query;
     }
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
+        if (empty($this->allowedSorts) || !request()->has('sort')) {
+            return $query;
         }
 
         $sortFields = explode(',', request('sort'));
 
-        foreach ($sortFields as $field) {
+        foreach ($sortFields as $sortField) {
             $direction = 'asc';
-            if (str_starts_with($field, '-')) {
+            
+            if (str_starts_with($sortField, '-')) {
                 $direction = 'desc';
-                $field = substr($field, 1);
+                $sortField = substr($sortField, 1);
             }
 
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
+            if (in_array($sortField, $this->allowedSorts)) {
+                $query->orderBy($sortField, $direction);
             }
         }
+
+        return $query;
     }
 
+    
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage > 0) {
-                return $query->paginate($perPage);
-            }
+        if (request()->has('per_page')) {
+            $perPage = intval(request('per_page'));
+            return $query->paginate($perPage);
         }
+
         return $query->get();
+    }
+
+    
+    public function actualizarStock($cantidad)
+    {
+        $this->cantidad_disponible += $cantidad;
+        $this->save();
+        return $this;
     }
 }

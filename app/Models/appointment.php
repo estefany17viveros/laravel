@@ -10,127 +10,141 @@ class Appointment extends Model
 {
     use HasFactory;
 
+    protected $table = 'appointments';
+
+    
     protected $fillable = [
-        'status',
-        'date',
-        'description',
-        'user_id',
-        'veterinarian_id',
-        'service_id',
-        'schedule_id',
-        'trainer_id',
-        'pet_id',
+        'date',       
+        'status',         
+        'description',    
+        'trainer_id',  
+        'veterinarian_id'  
     ];
 
-    // Configuración para consultas
-    protected $allowFilter = ['id', 'status', 'date', 'user_id', 'veterinarian_id', 'service_id', 'pet_id'];
-    protected $allowSort = ['id', 'date', 'status', 'created_at'];
-    protected $dates = ['date']; // Para manejar automáticamente como Carbon
+    
+    protected $allowedFilters = [
+        'date',
+        'status',
+        'trainer_id',
+        'veterinarian_id'
+    ];
 
-    // Relaciones
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
+    
+    protected $allowedSorts = [
+        'date',
+        'status',
+        'created_at'
+    ];
 
-    public function veterinarian()
-    {
-        return $this->belongsTo(Veterinarian::class);
-    }
+ 
+    protected $allowedIncludes = [
+        'trainer',
+        'veterinarian',
+        'pet',
+        'notifications'
+    ];
 
-    public function service()
-    {
-        return $this->belongsTo(Service::class);
-    }
-
-    public function schedule()
-    {
-        return $this->belongsTo(Schedule::class);
-    }
-
-    public function trainer()
+    
+    public function trainers()
     {
         return $this->belongsTo(Trainer::class);
     }
 
-    public function pet()
+    
+    public function veterinarians()
+    {
+        return $this->belongsTo(Veterinarian::class);
+    }
+
+   
+    public function pets()
     {
         return $this->belongsTo(Pet::class);
     }
 
-    protected function getAllowIncluded()
+    
+    public function notifications()
     {
-        return ['user', 'veterinarian', 'service', 'schedule', 'trainer', 'pet'];
+        return $this->hasMany(Notification::class);
     }
 
-    // Scopes para consultas anidadas
+    /**
+     * Scope para incluir relaciones
+     */
     public function scopeIncluded(Builder $query)
     {
-        $allowIncluded = $this->getAllowIncluded();
-
-        if (!request()->filled('included')) {
+        if (empty($this->allowedIncludes) || !request()->has('include')) {
             return $query;
         }
 
-        $relations = explode(',', request('included'));
+        $relations = explode(',', request('include'));
 
-        $filtered = array_filter($relations, function ($relation) use ($allowIncluded) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $allowIncluded);
-        });
+        $validIncludes = collect($relations)->filter(function ($relation) {
+            return in_array($relation, $this->allowedIncludes);
+        })->toArray();
 
-        return $query->with($filtered);
+        return $query->with($validIncludes);
     }
 
+    /**
+     * Scope para filtrar
+     */
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        if (empty($this->allowedFilters) || !request()->has('filter')) {
+            return $query;
         }
 
         $filters = request('filter');
 
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                // Manejo especial para fechas
-                if ($column === 'date') {
-                    $query->whereDate($column, $value);
-                } else {
-                    $query->where($column, 'LIKE', '%' . $value . '%');
-                }
+        foreach ($filters as $filter => $value) {
+            if (in_array($filter, $this->allowedFilters)) {
+                $query->where($filter, 'LIKE', "%{$value}%");
             }
         }
+
+        return $query;
     }
 
+    /**
+     * Scope para ordenar
+     */
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
+        if (empty($this->allowedSorts) || !request()->has('sort')) {
+            return $query;
         }
 
         $sortFields = explode(',', request('sort'));
 
-        foreach ($sortFields as $field) {
+        foreach ($sortFields as $sortField) {
             $direction = 'asc';
-            if (str_starts_with($field, '-')) {
+            
+            if (str_starts_with($sortField, '-')) {
                 $direction = 'desc';
-                $field = substr($field, 1);
+                $sortField = substr($sortField, 1);
             }
 
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
+            if (in_array($sortField, $this->allowedSorts)) {
+                $query->orderBy($sortField, $direction);
             }
         }
+
+        return $query;
     }
 
+    /**
+     * Scope para paginación
+     */
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage) {
-                return $query->paginate($perPage);
-            }
+        if (request()->has('per_page')) {
+            $perPage = intval(request('per_page'));
+            return $query->paginate($perPage);
         }
+
         return $query->get();
     }
+
+   
 }

@@ -3,126 +3,130 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 
 class Notification extends Model
 {
     use HasFactory;
 
+    protected $table = 'notifications';
+
+   
     protected $fillable = [
-        'title',
-        'description',
-        'user_id',
-        'is_read', // Campo añadido para estado de lectura
-        'type' // Campo añadido para tipo de notificación
+        'Title',        
+        'Description',   
+        'user_id',       
+        'appointment_id'        
     ];
 
-    // Configuración para consultas
-    protected $allowFilter = [
+  
+    protected $allowedFilters = [
         'id',
-        'title',
+        'Title',
         'user_id',
-        'is_read',
-        'type',
+        'appointment_id'
+    ];
+
+   
+    protected $allowedSorts = [
+        'id',
+        'titulo',
         'created_at'
     ];
-    
-    protected $allowSort = [
-        'id',
-        'title',
-        'created_at'
-    ];
-    
-    protected $allowIncluded = [
-        'user',
-        'user.profile' // Relación anidada
+
+ 
+    protected $allowedIncludes = [
+        'usuario',
+        'cita'
     ];
 
-    // Casts
-    protected $casts = [
-        'is_read' => 'boolean',
-        'created_at' => 'datetime'
-    ];
-
-    // Relaciones
-    public function user()
+ 
+    public function users()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Scopes optimizados
+ 
+    public function appointments()
+    {
+        return $this->belongsTo(Appointments::class);
+    }
+
+   
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
+        if (empty($this->allowedIncludes) || !request()->has('include')) {
             return $query;
         }
 
-        $relations = explode(',', request('included'));
+        $relations = explode(',', request('include'));
 
-        $filtered = array_filter($relations, function ($relation) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $this->allowIncluded);
-        });
+        $validIncludes = collect($relations)->filter(function ($relation) {
+            return in_array($relation, $this->allowedIncludes);
+        })->toArray();
 
-        return $query->with($filtered);
+        return $query->with($validIncludes);
     }
 
+    /**
+     * Scope para filtrar
+     */
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        if (empty($this->allowedFilters) || !request()->has('filter')) {
+            return $query;
         }
 
         $filters = request('filter');
 
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                // Manejo especial para booleanos
-                if ($column === 'is_read') {
-                    $query->where($column, filter_var($value, FILTER_VALIDATE_BOOLEAN));
-                } else {
-                    $query->where($column, 'LIKE', '%' . $value . '%');
-                }
+        foreach ($filters as $filter => $value) {
+            if (in_array($filter, $this->allowedFilters)) {
+                $query->where($filter, 'LIKE', "%{$value}%");
             }
         }
+
+        return $query;
     }
 
+    /**
+     * Scope para ordenar
+     */
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
+        if (empty($this->allowedSorts) || !request()->has('sort')) {
+            return $query;
         }
 
         $sortFields = explode(',', request('sort'));
 
-        foreach ($sortFields as $field) {
+        foreach ($sortFields as $sortField) {
             $direction = 'asc';
-            if (str_starts_with($field, '-')) {
+            
+            if (str_starts_with($sortField, '-')) {
                 $direction = 'desc';
-                $field = substr($field, 1);
+                $sortField = substr($sortField, 1);
             }
 
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
+            if (in_array($sortField, $this->allowedSorts)) {
+                $query->orderBy($sortField, $direction);
             }
         }
+
+        return $query;
     }
 
+    /**
+     * Scope para paginación
+     */
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage > 0) {
-                return $query->paginate($perPage);
-            }
+        if (request()->has('per_page')) {
+            $perPage = intval(request('per_page'));
+            return $query->paginate($perPage);
         }
+
         return $query->get();
     }
 
-    // Scope adicional para notificaciones no leídas
-    public function scopeUnread(Builder $query)
-    {
-        return $query->where('is_read', false);
-    }
 }

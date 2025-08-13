@@ -5,36 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Orderitem extends Model
+class TipoPago extends Model
 {
     use HasFactory;
 
-    protected $table = 'order_items';
+    protected $table = 'tipos_pago';
 
-   
+  
     protected $fillable = [
-        'quantity',          
-        'unit_price',   
-        'product_id',     
-        'order_id'          
+        'amount',             
+        'method',
+        'status',       
+        'payable_type',      // para relación polimórfica
+        'payable_id'         // para relación polimórfica
     ];
 
-    
+    /**
+     * Campos permitidos para filtrado
+     */
     protected $allowedFilters = [
         'id',
-        'quantity',
-        'unit_price',
-        'product_id',
-        'order_id'
+        'monto',
+        'metodo_pago',
+        'pagable_type'
     ];
 
-    
+    /**
+     * Campos permitidos para ordenamiento
+     */
     protected $allowedSorts = [
         'id',
-        'quantity',
-        'unit_price',
+        'monto',
         'created_at'
     ];
 
@@ -42,24 +44,30 @@ class Orderitem extends Model
      * Relaciones permitidas para inclusión
      */
     protected $allowedIncludes = [
-        'product',
-        'order'
+        'pagable',          // Relación polimórfica
+        'metodoPago'        // Relación con método de pago
     ];
 
     /**
-     * Relación con PRODUCTO (N:1)
+     * Relación polimórfica (Pedido/Veterinaria/Entrenador)
      */
-    public function products()
+    public function pagable()
     {
-        return $this->belongsTo(Product::class);
-    }
-   
-    public function orders()
-    {
-        return $this->belongsTo(Order::class);
+        return $this->morphTo();
     }
 
-    public function scopeIncluded(Builder $query): Builder
+    /**
+     * Relación con MÉTODO_PAGO (1:1)
+     */
+    public function metodoPago()
+    {
+        return $this->belongsTo(MetodoPago::class, 'metodo_pagos_id');
+    }
+
+    /**
+     * Scope para incluir relaciones
+     */
+    public function scopeIncluded(Builder $query)
     {
         if (empty($this->allowedIncludes) || !request()->has('include')) {
             return $query;
@@ -77,7 +85,7 @@ class Orderitem extends Model
     /**
      * Scope para filtrar
      */
-    public function scopeFilter(Builder $query): Builder
+    public function scopeFilter(Builder $query)
     {
         if (empty($this->allowedFilters) || !request()->has('filter')) {
             return $query;
@@ -97,7 +105,7 @@ class Orderitem extends Model
     /**
      * Scope para ordenar
      */
-    public function scopeSort(Builder $query): Builder
+    public function scopeSort(Builder $query)
     {
         if (empty($this->allowedSorts) || !request()->has('sort')) {
             return $query;
@@ -125,7 +133,19 @@ class Orderitem extends Model
      * Casts para los atributos
      */
     protected $casts = [
-        'cantidad' => 'decimal:2',
-        'precio_unitario' => 'decimal:2'
+        'monto' => 'decimal:2'
     ];
+
+    /**
+     * Obtener el tipo de entidad pagable
+     */
+    public function getTipoPagableAttribute(): string
+    {
+        return match($this->pagable_type) {
+            'App\Models\Pedido' => 'pedido',
+            'App\Models\Veterinaria' => 'veterinaria',
+            'App\Models\Entrenador' => 'entrenador',
+            default => 'desconocido'
+        };
+    }
 }

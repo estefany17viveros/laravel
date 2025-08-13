@@ -18,6 +18,8 @@ return new class extends Migration
             $table->decimal('price', 10, 2);         
             $table->string('image')->nullable();    
             $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
+            $table->foreignId('veterinarian_id')->constrained('veterinarians')->onDelete('cascade');
+            $table->foreignId('shopping_carts_id')->constrained('shopping_carts')->onDelete('cascade');
 
             $table->timestamps();
         });

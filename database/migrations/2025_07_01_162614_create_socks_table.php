@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('Upload_Date');
 
             $table->foreignId('topic_id')->constrained('topics')->onDelete('cascade');
+            $table->foreignId('answer_id')->constrained('answers')->onDelete('cascade');
 
             $table->timestamps();
         });
