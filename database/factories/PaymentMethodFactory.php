@@ -3,16 +3,20 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
+
 
 class PaymentMethodFactory extends Factory
 {
     public function definition(): array
     {
         return [
-            'types' => $this->faker->randomElement(['Credit Card', 'Debit Card', 'PayPal', 'PSE']),
-            'details' => $this->faker->creditCardNumber(),
+            'type' => $this->faker->randomElement(['Credit Card', 'Debit Card', 'PayPal', 'PSE']),
+            'description' => $this->faker->creditCardNumber(),
             'expiration_date' => $this->faker->creditCardExpirationDate(),
-            'CCV' => $this->faker->numberBetween(100, 999),
+            'payment_id' => Payment::factory(),
+
         ];
     }
 }

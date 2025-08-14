@@ -11,58 +11,63 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'description',
+        'name', 
+        'description', 
         'price',
-        'image',
-        'category_id',
+        'image', 
+        'category_id', 
         'veterinary_id',
-        'shoppingcar_id',
+        'shopping_cart_id', 
     ];
 
-    //  Relaciones
-    // Relaciones N:1
-    public function categories()
+    // Relaciones
+    public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function veterinarians()
+    public function veterinary()
     {
-        return $this->belongsTo(Veterinarian::class);
+        return $this->belongsTo(Veterinary::class);
     }
 
-    // Relaciones 1:1
-    public function inventaries()
+    public function shoppingCart()
     {
-        return $this->hasOne(Inventary::class);
+        return $this->belongsTo(ShoppingCart::class);
     }
 
-    // Relaciones 1:N
-    public function orderitems()
+    public function inventory()
     {
-        return $this->hasMany(Orderitem::class);
+        return $this->hasOne(Inventory::class, 'producto_ID');
     }
 
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class, 'producto_id');
+    }
 
     protected $allowIncluded = [
         'category',
         'veterinary',
-        'shoppingcar',
-        'orderitems',
-        'inventories'
+        'shoppingCart',
+        'orderItems',
+        'inventory'
     ];
 
     protected $allowFilter = [
         'name',
         'description',
-        'price'
+        'price',
+        'category.name', 
+        'veterinary.name' 
     ];
 
     protected $allowSort = [
         'name',
         'price',
-        'created_at'
+        'created_at',
+        'category.name', 
+        'veterinary.name' 
     ];
 
     public function scopeIncluded(Builder $query)
@@ -91,10 +96,49 @@ class Product extends Model
         }
 
         $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
 
         foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                $query->where($column, 'LIKE', '%' . $value . '%');
+            if ($allowFilter->contains($column)) {
+                // Soporte para filtrado anidado
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    $query->where($column, 'LIKE', "%$value%");
+                }
+            }
+        }
+    }
+
+    public function scopeSort(Builder $query)
+    {
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return;
+        }
+
+        $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
+
+        foreach ($sortFields as $field) {
+            $direction = 'asc';
+            if (str_starts_with($field, '-')) {
+                $direction = 'desc';
+                $field = substr($field, 1);
+            }
+
+            if ($allowSort->contains($field)) {
+                // Soporte para ordenamiento anidado
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
     }
@@ -108,17 +152,5 @@ class Product extends Model
             }
         }
         return $query->get();
-    }
-
-    public function scopeSort(Builder $query)
-    {
-        if (request()->has('sort_by') && request()->has('sort_direction')) {
-            $column = request('sort_by');
-            $direction = request('sort_direction');
-
-            if (in_array($column, $this->allowSort)) {
-                return $query->orderBy($column, $direction);
-            }
-        }
     }
 }

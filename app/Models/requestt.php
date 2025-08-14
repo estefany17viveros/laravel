@@ -6,21 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Requestt extends Model
+class Solicitude extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'date',
-        'priority',
-        'solicitation_status',
+        'date', 
+        'priority', 
+        'solicitation_status', 
         'user_id',
         'shelter_id',
-        'services_id',
-        'appointment_id',
+        'adoption_id',
+        'service_id', 
     ];
 
-    protected $allowIncluded = ['user', 'shelter', 'service', 'appointment'];
+    protected $allowIncluded = ['user', 'shelter', 'adoption', 'service'];
     protected $allowFilter = [
         'id', 
         'priority', 
@@ -28,8 +28,8 @@ class Requestt extends Model
         'user.name',
         'user.email',
         'shelter.name',
-        'service.name',
-        'appointment.date'
+        'adoption.pet.name',
+        'service.name'
     ];
     protected $allowSort = [
         'id', 
@@ -37,30 +37,32 @@ class Requestt extends Model
         'date',
         'user.name',
         'shelter.name',
-        'service.name',
-        'appointment.date'
+        'adoption.date',
+        'service.name'
     ];
 
+    // Relaciones
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'usuario_id');
     }
 
-    public function shelter()
+    public function refuge()
     {
-        return $this->belongsTo(Shelter::class);
+        return $this->belongsTo(Refuge::class, 'refugio_id');
+    }
+
+    public function adoption()
+    {
+        return $this->belongsTo(Adoption::class, 'adopcion_id');
     }
 
     public function service()
     {
-        return $this->belongsTo(Service::class, 'services_id');
+        return $this->hasOne(Service::class, 'solicitud_id');
     }
 
-    public function appointment()
-    {
-        return $this->belongsTo(Appointment::class);
-    }
-
+    // Scopes (mantener los mismos métodos que ya tienes)
     public function scopeIncluded(Builder $query)
     {
         if (empty($this->allowIncluded) || empty(request('included'))) return;
@@ -86,7 +88,6 @@ class Requestt extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Verificar si es un filtro anidado (relación.campo)
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
                     $query->whereHas($relation, function($q) use ($field, $value) {
@@ -114,7 +115,6 @@ class Requestt extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Verificar si es un ordenamiento anidado (relación.campo)
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {

@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use App\Models\Notification;
 use App\Models\User;
+use App\Models\Appointment;
+
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class NotificationFactory extends Factory
@@ -16,6 +18,9 @@ class NotificationFactory extends Factory
             'Title'       => $this->faker->sentence(4),
             'Description' => $this->faker->paragraph,
             'user_id'     => User::factory(), // crea un usuario relacionado
+            'appointment_id'     => Appointment::factory(), 
+            
+
         ];
     }
 }

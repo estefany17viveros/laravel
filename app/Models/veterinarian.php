@@ -5,66 +5,48 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Veterinarian extends Model
+class Veterinary extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'specialty',
-        'experience',
-        'qualifications',
-        'biography',
-        'license_number',
-        'consultation_fee',
-        'availability',
-        'user_id',
-        'shelter_id'
+        'name',          
+        'address',       
+        'email',        
+        'phone',       
+        'schedule',     
+        'user_id',     
     ];
 
     protected $allowIncluded = [
-        'user', 
-        'user.profile',
-        'shelter',
-        'shelter.location',
-        'appointments',
-        'appointments.pet',
+        'user',
         'pets',
-        'pets.owner'
+        'services',
+        'appointments'
     ];
 
     protected $allowFilter = [
         'id',
         'name',
+        'address',
         'email',
         'phone',
-        'specialty',
-        'experience',
-        'license_number',
-        'consultation_fee',
-        'availability',
+        'schedule',
         'user.name',
-        'user.email',
-        'shelter.name',
-        'shelter.city',
-        'appointments.status',
-        'appointments.date',
-        'pets.species'
+        'pets.name',
+        'services.name',
+        'appointments.date'
     ];
 
     protected $allowSort = [
         'id',
         'name',
-        'email',
-        'specialty',
-        'experience',
-        'consultation_fee',
-        'user.created_at',
-        'shelter.name',
-        'appointments.date'
+        'address',
+        'phone',
+        'user.created_at'
     ];
 
     public function user()
@@ -72,25 +54,20 @@ class Veterinarian extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function shelter()
+    public function pets()
     {
-        return $this->belongsTo(Shelter::class);
+        return $this->hasMany(Pet::class);
+    }
+
+    public function services()
+    {
+        return $this->hasMany(Service::class);
     }
 
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
     }
-
-    public function pets()
-    {
-        return $this->hasMany(Pet::class);
-    }
-    public function roles()
-    {
-        return $this->morphMany(Role::class, 'roleable');
-    }
-    
 
     public function scopeIncluded(Builder $query)
     {
@@ -127,8 +104,8 @@ class Veterinarian extends Model
                         }
                     });
                 } else {
-                    if (in_array($column, ['consultation_fee', 'experience'])) {
-                        $query->where($column, '>=', $value);
+                    if ($column === 'phone') {
+                        $query->where($column, $value); // Búsqueda exacta para teléfono
                     } else {
                         $query->where($column, 'LIKE', "%$value%");
                     }
@@ -166,7 +143,6 @@ class Veterinarian extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        $perPage = request('perPage');
-        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
 }

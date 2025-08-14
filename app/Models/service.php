@@ -11,40 +11,41 @@ class Service extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'price',
-        'duration',
-        'description',
-        'veterinarian_id',
-        'trainer_id',
-        'requestt_id',
+        'name',         
+        'price',         
+        'duration',     
+        'description',  
+        'veterinary_id', 
+        'trainer_id',    
+        'request_id',    
     ];
 
-    protected $allowIncluded = ['veterinarian', 'trainer', 'requestt'];
+    protected $allowIncluded = ['veterinary', 'trainer', 'request'];
     protected $allowFilter = [
         'id', 
         'name', 
         'price', 
         'duration',
-        'veterinarian.name',
-        'veterinarian.specialty',
+        'veterinary.name',
+        'veterinary.specialty',
         'trainer.name',
-        'trainer.specialization',
-        'requestt.priority'
+        'trainer.specialty',
+        'request.priority'
     ];
     protected $allowSort = [
         'id', 
         'name', 
         'price', 
         'duration',
-        'veterinarian.name',
+        'veterinary.name',
         'trainer.name',
-        'requestt.date'
+        'request.date'
     ];
 
-    public function veterinarian()
+    // Relaciones
+    public function veterinary()
     {
-        return $this->belongsTo(Veterinarian::class);
+        return $this->belongsTo(Veterinary::class);
     }
 
     public function trainer()
@@ -52,9 +53,9 @@ class Service extends Model
         return $this->belongsTo(Trainer::class);
     }
 
-    public function requestt()
+    public function request()
     {
-        return $this->belongsTo(Requestt::class);
+        return $this->belongsTo(Request::class);
     }
 
     public function scopeIncluded(Builder $query)
@@ -82,14 +83,12 @@ class Service extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Verificar si es un filtro anidado (relación.campo)
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
                     $query->whereHas($relation, function($q) use ($field, $value) {
                         $q->where($field, 'LIKE', "%$value%");
                     });
                 } else {
-                    // Manejo especial para campos numéricos y de fecha
                     if (in_array($column, ['price', 'duration'])) {
                         $query->where($column, $value);
                     } else {
@@ -115,7 +114,6 @@ class Service extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Verificar si es un ordenamiento anidado (relación.campo)
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {
@@ -134,7 +132,6 @@ class Service extends Model
             $perPage = intval(request('perPage'));
             return $query->paginate($perPage);
         }
-
         return $query->get();
     }
 }

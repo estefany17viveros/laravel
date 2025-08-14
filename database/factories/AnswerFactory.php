@@ -17,7 +17,6 @@ class AnswerFactory extends Factory
             'content' => $this->faker->sentence(),
             'creation_date' => $this->faker->date(),
             'topic_id' => Topic::factory(),  // se crea un topic si no existe
-            'users_id' => User::factory(),   // se crea un usuario si no existe
         ];
     }
 }

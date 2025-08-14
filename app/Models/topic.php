@@ -5,54 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Topic extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'title',
-        'description',
-        'creation_date',
-        'user_id',
-        'forum_id',
-        'status',
-        'views_count',
-        'last_activity'
+        'title',            
+        'description',      
+        'created_at',       
+        'user_id',          
+        'forum_id',       
     ];
 
-    protected $allowIncluded = [
-        'user',
-        'forum',
-        'forum.category',
-        'posts',
-        'posts.user',
-        'tags'
-    ];
-
+    protected $allowIncluded = ['user', 'forum', 'answers', 'media'];
     protected $allowFilter = [
         'id',
         'title',
-        'creation_date',
-        'status',
-        'views_count',
+        'created_at',
         'user.id',
         'user.name',
-        'user.email',
         'forum.id',
-        'forum.name',
-        'forum.category.name',
+        'forum.title'
     ];
-
     protected $allowSort = [
         'id',
         'title',
-        'creation_date',
-        'status',
-        'views_count',
-        'last_activity',
+        'created_at',
         'user.name',
-        'forum.name',
+        'forum.title'
     ];
 
     public function user()
@@ -64,14 +48,15 @@ class Topic extends Model
     {
         return $this->belongsTo(Forum::class);
     }
-    public function tags(): BelongsToMany
+
+    public function answers()
     {
-        return $this->belongsToMany(
-            Tag::class,
-            'topic_tags', 
-            'id_topics',        
-            'id_tags'    
-        );
+        return $this->hasMany(Answer::class);
+    }
+
+    public function socks()
+    {
+        return $this->hasMany(Sock::class);
     }
 
     public function scopeIncluded(Builder $query)
@@ -99,24 +84,13 @@ class Topic extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Filtrado anidado para relaciones
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
-                    
-                    if ($relation === 'tags') {
-                        $query->whereHas($relation, function($q) use ($field, $value) {
-                            $q->where($field, 'LIKE', "%$value%");
-                        });
-                    } else {
-                        $query->whereHas($relation, function($q) use ($field, $value) {
-                            $q->where($field, 'LIKE', "%$value%");
-                        });
-                    }
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
                 } else {
-                    // Manejo especial para campos numéricos y fechas
-                    if (in_array($column, ['views_count'])) {
-                        $query->where($column, $value);
-                    } elseif (in_array($column, ['creation_date', 'last_activity'])) {
+                    if ($column === 'created_at') {
                         $query->whereDate($column, $value);
                     } else {
                         $query->where($column, 'LIKE', "%$value%");
@@ -141,7 +115,6 @@ class Topic extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Ordenamiento anidado para relaciones
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {
@@ -156,7 +129,6 @@ class Topic extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        $perPage = request('perPage');
-        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
 }

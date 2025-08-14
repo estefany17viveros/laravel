@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->enum('type', [ // tipos de roles 
                 'admin',
-                'subadmin', 
                 'customer',
                 'veterinarian',
                 'trainer'

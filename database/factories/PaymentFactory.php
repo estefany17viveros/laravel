@@ -2,11 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\Payment;
 use App\Models\Order;
-use App\Models\User;
-
+use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\Payment_Type;
+use App\Models\User;
+use App\Models\Veterinarian;
+use App\Models\Trainer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PaymentFactory extends Factory
@@ -15,23 +17,41 @@ class PaymentFactory extends Factory
 
     public function definition(): array
     {
-        $order = \App\Models\Order::inRandomOrder()->first() ?? \App\Models\Order::factory()->create();
-        $user = \App\Models\User::inRandomOrder()->first() ?? \App\Models\User::factory()->create();
+        $user = User::inRandomOrder()->first() ?? User::factory()->create();
+        $paymentType = Payment_Type::inRandomOrder()->first() ?? Payment_Type::factory()->create();
+
+        $payableModels = [
+            Order::class => Order::inRandomOrder()->first() ?? Order::factory()->create(),
+            Veterinarian::class => Veterinarian::inRandomOrder()->first() ?? Veterinarian::factory()->create(),
+            Trainer::class => Trainer::inRandomOrder()->first() ?? Trainer::factory()->create(),
+        ];
+
+        $payableType = $this->faker->randomElement(array_keys($payableModels));
+        $payable = $payableModels[$payableType];
 
         return [
-            'amount' => $this->faker->numberBetween(10000, 500000),
-            'date' => $this->faker->dateTimeBetween('-1 month', 'now'),
+            'amount' => $this->faker->randomFloat(2, 10, 5000),
+            'date' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'status' => $this->faker->randomElement(['pending', 'confirmed', 'completed', 'cancelled']),
-
-            'payable_id' => $order->id,
-            'payable_type' => \App\Models\Order::class,
-
-            // ✅ Usuario que hizo el pago
+    
             'user_id' => $user->id,
-
-            // ✅ Método de pago
-            'payment_method_id' => \App\Models\PaymentMethod::inRandomOrder()->first()?->id
-                                   ?? \App\Models\PaymentMethod::factory()->create()->id,
+            'payment_types_id' => $paymentType->id,
+            
+            // Relación polimórfica
+            'payable_id' => $payable->id,
+            'payable_type' => $payableType,
         ];
+    }
+
+    /**
+     * Configure the model factory.
+     *
+     * @return $this
+     */
+    public function configure()
+    {
+        return $this->afterCreating(function (Payment $payment) {
+            // Lógica adicional después de crear el pago si es necesaria
+        });
     }
 }

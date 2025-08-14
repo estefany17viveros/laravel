@@ -3,126 +3,134 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Forum extends Model
 {
     use HasFactory;
 
-    protected $table = 'forums';
+    protected $table = 'forums'; 
 
-    
     protected $fillable = [
-        'name',          
-        'descrition',    
-        'date',   
-        'user_id'        
+        'title',         
+        'description',  
+        'created_at',    
+        'user_id'    
     ];
 
-    protected $allowedFilters = [
+    protected $allowIncluded = [
+        'user',
+        'topics',
+        'topics.user',
+        'topics.answers'
+    ];
+
+    protected $allowFilter = [
         'id',
-        'name',
-        'user_id',
-        'date'
+        'title',
+        'description',
+        'created_at',
+        'user.name',
+        'user.email',
+        'topics.title'
     ];
 
-
-    protected $allowedSorts = [
+    protected $allowSort = [
         'id',
-        'name',
-        'date',
-        'created_at'
+        'title',
+        'created_at',
+        'user.name'
     ];
 
-  
-    protected $allowedIncludes = [
-        'users',
-        'topics'
-    ];
-
-    
     public function users()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class); 
     }
 
-    
     public function topics()
     {
-        return $this->hasMany(Topic::class);
+        return $this->hasMany(Topic::class); 
     }
 
-   
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowedIncludes) || !request()->has('include')) {
+        if (empty($this->allowIncluded) || empty(request('included'))) {
             return $query;
         }
 
-        $relations = explode(',', request('include'));
+        $relations = explode(',', request('included'));
+        $allowIncluded = collect($this->allowIncluded);
 
-        $validIncludes = collect($relations)->filter(function ($relation) {
-            return in_array($relation, $this->allowedIncludes);
-        })->toArray();
+        foreach ($relations as $key => $relation) {
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
+        }
 
-        return $query->with($validIncludes);
+        $query->with($relations);
     }
 
-   
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowedFilters) || !request()->has('filter')) {
+        if (empty($this->allowFilter) || empty(request('filter'))) {
             return $query;
         }
 
         $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
 
-        foreach ($filters as $filter => $value) {
-            if (in_array($filter, $this->allowedFilters)) {
-                $query->where($filter, 'LIKE', "%{$value}%");
+        foreach ($filters as $column => $value) {
+            if ($allowFilter->contains($column)) {
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    if ($column === 'created_at') {
+                        $query->whereDate($column, $value);
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
-
-        return $query;
     }
-
-    
 
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowedSorts) || !request()->has('sort')) {
+        if (empty($this->allowSort) || empty(request('sort'))) {
             return $query;
         }
 
         $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
 
-        foreach ($sortFields as $sortField) {
+        foreach ($sortFields as $field) {
             $direction = 'asc';
-            
-            if (str_starts_with($sortField, '-')) {
+            if (str_starts_with($field, '-')) {
                 $direction = 'desc';
-                $sortField = substr($sortField, 1);
+                $field = substr($field, 1);
             }
 
-            if (in_array($sortField, $this->allowedSorts)) {
-                $query->orderBy($sortField, $direction);
+            if ($allowSort->contains($field)) {
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
-
-        return $query;
     }
 
-   
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request()->has('per_page')) {
-            $perPage = intval(request('per_page'));
-            return $query->paginate($perPage);
-        }
-
-        return $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
-
-   
 }

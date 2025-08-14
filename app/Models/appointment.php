@@ -5,146 +5,144 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Appointment extends Model
 {
     use HasFactory;
 
-    protected $table = 'appointments';
+    protected $table = 'appointments'; 
 
-    
     protected $fillable = [
-        'date',       
+        'date',            
         'status',         
         'description',    
-        'trainer_id',  
-        'veterinarian_id'  
+        'trainer_id',     
+        'veterinary_id'    
     ];
 
-    
-    protected $allowedFilters = [
-        'date',
-        'status',
-        'trainer_id',
-        'veterinarian_id'
-    ];
-
-    
-    protected $allowedSorts = [
-        'date',
-        'status',
-        'created_at'
-    ];
-
- 
-    protected $allowedIncludes = [
+    protected $allowIncluded = [
         'trainer',
-        'veterinarian',
-        'pet',
-        'notifications'
+        'veterinary',
+        'notifications',
+        'pet'
     ];
 
-    
-    public function trainers()
+    protected $allowFilter = [
+        'id',
+        'date',
+        'status',
+        'trainer.name',
+        'veterinary.name',
+        'pet.name'
+    ];
+
+    protected $allowSort = [
+        'id',
+        'date',
+        'status',
+        'trainer.name',
+        'veterinary.name'
+    ];
+
+    public function trainer()
     {
         return $this->belongsTo(Trainer::class);
     }
 
-    
-    public function veterinarians()
+    public function veterinary()
     {
-        return $this->belongsTo(Veterinarian::class);
+        return $this->belongsTo(Veterinary::class);
     }
 
-   
-    public function pets()
+    public function pet()
     {
         return $this->belongsTo(Pet::class);
     }
 
-    
-    public function notifications()
+     public function notifications()
     {
-        return $this->hasMany(Notification::class);
-    }
+       return $this->hasMany(Notification::class); 
+   }
 
-    /**
-     * Scope para incluir relaciones
-     */
     public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowedIncludes) || !request()->has('include')) {
+        if (empty($this->allowIncluded) || empty(request('included'))) {
             return $query;
         }
 
-        $relations = explode(',', request('include'));
+        $relations = explode(',', request('included'));
+        $allowIncluded = collect($this->allowIncluded);
 
-        $validIncludes = collect($relations)->filter(function ($relation) {
-            return in_array($relation, $this->allowedIncludes);
-        })->toArray();
+        foreach ($relations as $key => $relation) {
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
+        }
 
-        return $query->with($validIncludes);
+        $query->with($relations);
     }
 
-    /**
-     * Scope para filtrar
-     */
     public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowedFilters) || !request()->has('filter')) {
+        if (empty($this->allowFilter) || empty(request('filter'))) {
             return $query;
         }
 
         $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
 
-        foreach ($filters as $filter => $value) {
-            if (in_array($filter, $this->allowedFilters)) {
-                $query->where($filter, 'LIKE', "%{$value}%");
+        foreach ($filters as $column => $value) {
+            if ($allowFilter->contains($column)) {
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    if ($column === 'date') {
+                        $query->whereDate($column, $value);
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
-
-        return $query;
     }
 
-    /**
-     * Scope para ordenar
-     */
     public function scopeSort(Builder $query)
     {
-        if (empty($this->allowedSorts) || !request()->has('sort')) {
+        if (empty($this->allowSort) || empty(request('sort'))) {
             return $query;
         }
 
         $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
 
-        foreach ($sortFields as $sortField) {
+        foreach ($sortFields as $field) {
             $direction = 'asc';
-            
-            if (str_starts_with($sortField, '-')) {
+            if (str_starts_with($field, '-')) {
                 $direction = 'desc';
-                $sortField = substr($sortField, 1);
+                $field = substr($field, 1);
             }
 
-            if (in_array($sortField, $this->allowedSorts)) {
-                $query->orderBy($sortField, $direction);
+            if ($allowSort->contains($field)) {
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
-
-        return $query;
     }
 
-    /**
-     * Scope para paginación
-     */
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request()->has('per_page')) {
-            $perPage = intval(request('per_page'));
-            return $query->paginate($perPage);
-        }
-
-        return $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
-
-   
 }

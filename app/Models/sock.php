@@ -3,47 +3,48 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Sock extends Model
 {
     use HasFactory;
 
+    protected $table = 'socks'; 
+
     protected $fillable = [
-        'type',
-        'URL', 
-        'Upload_Date',
-        'topic_id',
-        'size',
-        'color',
-        'description'
+        'type',        
+        'url',         
+        'upload_date',  
+        'topic_id',     
+        'answer_id',   
     ];
 
-    protected $allowIncluded = ['topic', 'topic.category'];
+    protected $allowIncluded = ['topic', 'answer', 'topic.forum'];
     protected $allowFilter = [
         'id',
         'type',
-        'Upload_Date',
-        'size',
-        'color',
-        'topic.id',
-        'topic.name',
-        'topic.category.name',
-        
+        'upload_date',
+        'topic.title',
+        'topic.forum.title',
+        'answer.content'
     ];
     protected $allowSort = [
         'id',
         'type',
-        'Upload_Date',
-        'size',
-        'topic.name',
-        'topic.created_at'
+        'upload_date',
+        'topic.created_at',
+        'answer.created_at'
     ];
 
-    public function topic()
+    public function topics()
     {
         return $this->belongsTo(Topic::class);
+    }
+
+    public function answers()
+    {
+        return $this->belongsTo(Answer::class);
     }
 
     public function scopeIncluded(Builder $query)
@@ -71,22 +72,13 @@ class Sock extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Filtrado anidado para relaciones
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
-                    
-                    if ($relation === 'tags') {
-                        $query->whereHas($relation, function($q) use ($field, $value) {
-                            $q->where($field, 'LIKE', "%$value%");
-                        });
-                    } else {
-                        $query->whereHas($relation, function($q) use ($field, $value) {
-                            $q->where($field, 'LIKE', "%$value%");
-                        });
-                    }
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
                 } else {
-                    // Manejo especial para campos de fecha
-                    if ($column === 'Upload_Date') {
+                    if ($column === 'upload_date') {
                         $query->whereDate($column, $value);
                     } else {
                         $query->where($column, 'LIKE', "%$value%");
@@ -111,7 +103,6 @@ class Sock extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Ordenamiento anidado para relaciones
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {
@@ -126,7 +117,6 @@ class Sock extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        $perPage = request('perPage');
-        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
 }

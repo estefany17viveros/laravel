@@ -2,83 +2,127 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Role extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name_role',
-        'description',
-        'roleable_id',
-        'roleable_type'
+        'type', // Corresponde a los tipos en el diagrama: subadmi, admi, cliente, veterinario, entrenador
     ];
 
-    // Relación polimórfica
-    public function roleable()
+
+    public function users()
     {
-        return $this->morphTo();
+        return $this->hasMany(User::class);
     }
 
-    /**
-     * ?included=relacion1,relacion2
-     */
+    public function veterinarians()
+    {
+        return $this->hasMany(Veterinarian::class);
+    }
+
+    public function trainers()
+    {
+        return $this->hasMany(Trainer::class);
+    }
+
+    protected $allowIncluded = ['users', 'veterinarians', 'trainers'];
+    protected $allowFilter = [
+        'id',
+        'name',
+        'users.name',
+        'users.email',
+        'veterinarians.name',
+        'trainers.name'
+    ];
+    protected $allowSort = [
+        'id',
+        'name',
+        'users.created_at',
+        'veterinarians.created_at',
+        'trainers.created_at'
+    ];
+
     public function scopeIncluded(Builder $query)
     {
-        if (request()->filled('included')) {
-            $relations = explode(',', request('included'));
-            $query->with($relations);
+        if (empty($this->allowIncluded) || empty(request('included'))) {
+            return;
         }
-        return $query;
+
+        $relations = explode(',', request('included'));
+        $allowIncluded = collect($this->allowIncluded);
+
+        foreach ($relations as $key => $relation) {
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
+        }
+
+        $query->with($relations);
     }
 
-    /**
-     * ?filter[name_role]=Admin&filter[description]=perros
-     */
     public function scopeFilter(Builder $query)
     {
-        if (request()->has('filter') && is_array(request('filter'))) {
-            foreach (request('filter') as $field => $value) {
-                if (!empty($value) && in_array($field, ['name_role', 'description'])) {
-                    $query->where($field, 'like', "%{$value}%");
+        if (empty($this->allowFilter) || empty(request('filter'))) {
+            return;
+        }
+
+        $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
+
+        foreach ($filters as $column => $value) {
+            if ($allowFilter->contains($column)) {
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    $query->where($column, 'LIKE', "%$value%");
                 }
             }
         }
-        return $query;
     }
 
-    /**
-     * ?sort_by=name_role&sort_direction=asc
-     */
     public function scopeSort(Builder $query)
     {
-        if (request()->filled('sort_by') && request()->filled('sort_direction')) {
-            $column = request('sort_by');
-            $direction = request('sort_direction');
+        if (empty($this->allowSort) || empty(request('sort'))) {
+            return;
+        }
 
-            $allowed = ['name_role', 'description', 'created_at'];
-            if (in_array($column, $allowed)) {
-                $query->orderBy($column, $direction);
+        $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
+
+        foreach ($sortFields as $field) {
+            $direction = 'asc';
+            if (str_starts_with($field, '-')) {
+                $direction = 'desc';
+                $field = substr($field, 1);
+            }
+
+            if ($allowSort->contains($field)) {
+                if (str_contains($field, '.')) {
+                    [$relation, $relationField] = explode('.', $field);
+                    $query->with([$relation => function($q) use ($relationField, $direction) {
+                        $q->orderBy($relationField, $direction);
+                    }]);
+                } else {
+                    $query->orderBy($field, $direction);
+                }
             }
         }
-        return $query;
     }
 
-    /**
-     * ?per_page=10  o  ?per_page=all
-     */
-    public function scopeOrPaginate(Builder $query)
+    public function scopeGetOrPaginate(Builder $query)
     {
-        if (request()->has('per_page')) {
-            if (request('per_page') === 'all') {
-                return $query->get();
-            }
-            return $query->paginate(request('per_page', 15));
+        if (request('perPage')) {
+            $perPage = intval(request('perPage'));
+            return $query->paginate($perPage);
         }
-
         return $query->get();
     }
 }

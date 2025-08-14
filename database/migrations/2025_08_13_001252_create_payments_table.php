@@ -13,12 +13,13 @@ public function up(): void
 {
     Schema::create('payments', function (Blueprint $table) {
         $table->id();
-        $table->integer('amount');
+        $table->integer('amount', 10,2);
         $table->timestamp('date');
         $table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled'])->default('pending');
-
         $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-
+        $table->foreignId('payment_types_id')->constrained('payment__types')->onDelete('cascade');
+        $table->unsignedBigInteger('payable_id'); // Para relación polimórfica
+        $table->string('payable_type'); 
 
         $table->timestamps();
     });

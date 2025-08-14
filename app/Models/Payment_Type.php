@@ -5,73 +5,41 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Str;
 
-class Payment extends Model
+class PaymentType extends Model
 {
     use HasFactory;
 
-    protected $table = 'payments';
+
+    protected $table = 'payment_types';
 
     protected $fillable = [
-        'amount',
-        'date',
-        'status',
-        'user_id',
-        'payment_types_id',
-        'payable_id',
-        'payable_type'
+        'type',
+        'description',
     ];
 
-    protected $allowedIncludes = [
-        'user',
-        'paymentType',
-        'paymentMethods',
-        'payable'
-    ];
-
+    protected $allowedIncludes = ['payments'];
     protected $allowedFilters = [
         'id',
-        'amount',
-        'date',
-        'status',
-        'user.name',
-        'paymentType.type',
-        'payable_type'
+        'type',
+        'description',
+        'payments.amount'
     ];
-
     protected $allowedSorts = [
         'id',
-        'amount',
-        'date',
+        'type',
         'created_at'
     ];
 
-   
-    public function paymentType()
+    
+    public function payments(): HasMany
     {
-        return $this->belongsTo(PaymentType::class);
+        return $this->hasMany(Payment::class);
     }
 
-    public function paymentMethods()
-    {
-        return $this->hasMany(PaymentMethod::class);
-    }
-
-    public function payable()
-    {
-        return $this->morphTo();
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-  
+    
     public function scopeIncluded(Builder $query): Builder
     {
         if (empty($this->allowedIncludes) || !request()->has('included')) {
@@ -84,7 +52,9 @@ class Payment extends Model
         return $query->with($validRelations);
     }
 
-  
+    /**
+     * Scope para filtrar resultados
+     */
     public function scopeFilter(Builder $query): Builder
     {
         if (empty($this->allowedFilters) || !request()->has('filter')) {
@@ -109,22 +79,13 @@ class Payment extends Model
                 continue;
             }
 
-            switch ($filter) {
-                case 'amount':
-                    $query->where($filter, $value); 
-                    break;
-                case 'date':
-                    $query->whereDate($filter, $value);
-                    break;
-                default:
-                    $query->where($filter, 'LIKE', "%{$value}%");
-            }
+            $query->where($filter, 'LIKE', "%{$value}%");
         }
 
         return $query;
     }
 
-   
+    
     public function scopeSort(Builder $query): Builder
     {
         if (empty($this->allowedSorts) || !request()->has('sort')) {
@@ -149,7 +110,6 @@ class Payment extends Model
         return $query;
     }
 
-    
     public function scopeGetOrPaginate(Builder $query)
     {
         if (request()->has('perPage')) {

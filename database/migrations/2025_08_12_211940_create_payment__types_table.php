@@ -13,14 +13,9 @@ return new class extends Migration
     {
         Schema::create('payment__types', function (Blueprint $table) {
             $table->id();
-             $table->string('payable_type'); 
-            $table->unsignedBigInteger('payable_id');
-            $table->decimal('amount', 10, 2); 
-            $table->string('method'); 
-            $table->string('status')->default('pending'); 
+            $table->string('name');
+            $table->string('description')->nullable();
             $table->timestamps(); 
-
-            $table->index(['payable_type', 'payable_id']);
         });
     }
 

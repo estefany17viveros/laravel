@@ -5,81 +5,60 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Trainer extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'specialty',
-        'experience',
-        'rating',
-        'phone',
-        'email',
-        'biography',
-        'user_id',
-        'status',
-        'certifications',
-        'hourly_rate'
+        'name',      
+        'specialty',   
+        'experience',    
+        'rating',     
+        'phone',       
+        'email',         
+        'biography',     
+        'user_id',      
     ];
 
-    protected $allowIncluded = [
-        'user',
-        'user.profile',
-        'appointments',
-        'appointments.pet',
-        'services',
-        'services.pets'
-    ];
-
+    protected $allowIncluded = ['user', 'services', 'pets'];
     protected $allowFilter = [
         'id',
         'name',
         'specialty',
-        'email',
-        'phone',
-        'rating',
         'experience',
-        'status',
-        'hourly_rate',
+        'rating',
+        'phone',
+        'email',
         'user.name',
         'user.email',
-        'user.status',
         'services.name',
-        'services.price',
-        'appointments.status',
-        'appointments.date'
+        'services.price'
     ];
-
     protected $allowSort = [
         'id',
         'name',
         'rating',
         'experience',
-        'hourly_rate',
-        'user.created_at',
-        'services.price',
-        'appointments.date'
+        'user.created_at'
     ];
 
+    // Relación con usuario
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function appointments()
-    {
-        return $this->hasMany(Appointment::class);
     }
 
     public function services()
     {
         return $this->hasMany(Service::class);
     }
-     public function roles()
+
+    public function pets()
     {
-        return $this->morphMany(Role::class, 'roleable');
+        return $this->hasMany(Pet::class);
     }
 
     public function scopeIncluded(Builder $query)
@@ -107,21 +86,17 @@ class Trainer extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Filtrado anidado para relaciones
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
                     $query->whereHas($relation, function($q) use ($field, $value) {
-                        // Manejo especial para fechas en citas
-                        if ($relation === 'appointments' && $field === 'date') {
-                            $q->whereDate($field, $value);
-                        } else {
-                            $q->where($field, 'LIKE', "%$value%");
-                        }
+                        $q->where($field, 'LIKE', "%$value%");
                     });
                 } else {
-                    // Manejo especial para campos numéricos
-                    if (in_array($column, ['rating', 'experience', 'hourly_rate'])) {
+                    // Búsqueda exacta para campos numéricos
+                    if (in_array($column, ['rating', 'experience'])) {
                         $query->where($column, '>=', $value);
+                    } elseif ($column === 'phone') {
+                        $query->where($column, $value);
                     } else {
                         $query->where($column, 'LIKE', "%$value%");
                     }
@@ -145,7 +120,6 @@ class Trainer extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Ordenamiento anidado para relaciones
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {
@@ -160,7 +134,6 @@ class Trainer extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        $perPage = request('perPage');
-        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
 }

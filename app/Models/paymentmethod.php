@@ -9,136 +9,100 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class PaymentMethod extends Model
 {
     use HasFactory;
+     
+    protected $table ='payment_methods';
 
     protected $fillable = [
-        'types',
-        'details',
-        'expiration_date',
-        'CCV',
-        'is_default', // Campo añadido
-        'user_id' // Campo añadido para relación con usuario
+        'type', 
+        'description', 
+        'expiration_date', 
+        'payment_id'
     ];
 
-    // Configuración para consultas
-    protected $allowFilter = [
+    protected $allowedIncludes = ['payment', 'user'];
+    protected $allowedSorts = ['id', 'type', 'expiration_date', 'created_at'];
+    protected $allowedFilters = [
         'id',
-        'types',
-        'expiration_date',
-        'is_default',
-        'user_id'
-    ];
-    
-    protected $allowSort = [
-        'id',
-        'types',
-        'expiration_date',
-        'created_at'
-    ];
-    
-    protected $allowIncluded = [
-        'user', // Relación con usuario
-        'payments' // Relación con pagos
+        'payment_id',
+        'type',
+        'expiration_date'
     ];
 
-    // Casts
-    protected $casts = [
-        'expiration_date' => 'date',
-        'is_default' => 'boolean'
-    ];
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class);
+    }
 
-    // Relaciones
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function payments()
+    
+    public function scopeInclude(Builder $query, ?array $relations = null): Builder
     {
-        return $this->hasMany(Payment::class);
-    }
-
-    // Scopes optimizados
-    public function scopeIncluded(Builder $query)
-    {
-        if (empty($this->allowIncluded) || empty(request('included'))) {
+        if (empty($relations)) {
             return $query;
         }
 
-        $relations = explode(',', request('included'));
-
-        $filtered = array_filter($relations, function ($relation) {
-            $root = explode('.', $relation)[0];
-            return in_array($root, $this->allowIncluded);
-        });
-
-        return $query->with($filtered);
+        $validRelations = array_intersect($relations, $this->allowedIncludes);
+        
+        return $query->with($validRelations);
     }
 
-    public function scopeFilter(Builder $query)
+   
+    public function scopeSort(Builder $query, string $attribute, string $order = 'asc'): Builder
     {
-        if (empty($this->allowFilter) || empty(request('filter'))) {
-            return;
+        if (!in_array($attribute, $this->allowedSorts)) {
+            return $query;
         }
 
-        $filters = request('filter');
-
-        foreach ($filters as $column => $value) {
-            if (in_array($column, $this->allowFilter)) {
-                // Manejo especial para fechas
-                if ($column === 'expiration_date') {
-                    $query->whereDate($column, $value);
-                } 
-                // Manejo especial para booleanos
-                elseif ($column === 'is_default') {
-                    $query->where($column, filter_var($value, FILTER_VALIDATE_BOOLEAN));
-                } else {
-                    $query->where($column, 'LIKE', '%' . $value . '%');
-                }
-            }
-        }
+        return $query->orderBy($attribute, $order);
     }
 
-    public function scopeSort(Builder $query)
+   
+    public function scopeFilter(Builder $query, array $filters = []): Builder
     {
-        if (empty($this->allowSort) || empty(request('sort'))) {
-            return;
-        }
-
-        $sortFields = explode(',', request('sort'));
-
-        foreach ($sortFields as $field) {
-            $direction = 'asc';
-            if (str_starts_with($field, '-')) {
-                $direction = 'desc';
-                $field = substr($field, 1);
+        foreach ($filters as $key => $value) {
+            if ($value === null || !in_array($key, $this->allowedFilters)) {
+                continue;
             }
 
-            if (in_array($field, $this->allowSort)) {
-                $query->orderBy($field, $direction);
+            switch ($key) {
+                case 'id':
+                case 'payment_id':
+                    $query->where($key, $value);
+                    break;
+                    
+                case 'type':
+                    $query->where('type', 'like', "%{$value}%");
+                    break;
+                    
+                case 'expiration_date':
+                    if (is_array($value)) {
+                        if (isset($value['from'])) {
+                            $query->whereDate('expiration_date', '>=', $value['from']);
+                        }
+                        if (isset($value['to'])) {
+                            $query->whereDate('expiration_date', '<=', $value['to']);
+                        }
+                    } else {
+                        $query->whereDate('expiration_date', $value);
+                    }
+                    break;
             }
         }
+        
+        return $query;
     }
 
-    public function scopeGetOrPaginate(Builder $query)
-    {
-        if (request('perPage')) {
-            $perPage = intval(request('perPage'));
-            if ($perPage > 0) {
-                return $query->paginate($perPage);
-            }
-        }
-        return $query->get();
-    }
-
-    // Scope para métodos de pago activos (no expirados)
-    public function scopeActive(Builder $query)
-    {
-        return $query->where('expiration_date', '>', now());
-    }
-
-    // Scope para métodos por defecto
-    public function scopeDefault(Builder $query)
-    {
-        return $query->where('is_default', true);
+    public function scopeGetOrPaginate(
+        Builder $query, 
+        bool $paginate = false, 
+        int $perPage = 15
+    ) {
+        return $paginate 
+            ? $query->paginate($perPage)->appends(request()->query())
+            : $query->get();
     }
 }

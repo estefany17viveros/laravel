@@ -3,143 +3,141 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
     use HasFactory;
 
-    protected $table = 'orders';
+    protected $table = 'orders'; 
 
-   
     protected $fillable = [
-        'total',          
-        'status',         
-        'order_date',  
-        'user_id'      
+        'total',        
+        'status',        
+        'order_date',    
+        'user_id'       
     ];
 
-  
-    protected $allowedFilters = [
+    protected $allowIncluded = [
+        'user',
+        'shipment',
+        'order_items',
+        'payment'
+    ];
+
+    protected $allowFilter = [
         'id',
         'total',
         'status',
         'order_date',
-        'user_id'
+        'user.name',
+        'user.email',
+        'shipment.status'
     ];
 
-    protected $allowedSorts = [
+    protected $allowSort = [
         'id',
         'total',
         'order_date',
-        'created_at'
+        'status',
+        'user.created_at'
     ];
 
-    protected $allowedIncludes = [
-        'user',
-        'shipping',
-        'order_items',
-        'payments'
-    ];
-
-   
-    public function users(): BelongsTo
+    public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class); 
     }
 
-    public function shipping()
+    public function shipment()
     {
-        return $this->hasOne(Shipping::class);
+        return $this->hasOne(Shipment::class); 
     }
 
-    public function order_items(): HasMany
+    public function order_items()
     {
-        return $this->hasMany(Orderitem::class);
+        return $this->hasMany(OrderItem::class); 
     }
 
-    public function payment_types()
+    public function payment()
     {
-        return $this->morphOne(Payment_Types::class);
+        return $this->hasOne(Payment::class);
     }
 
-    public function scopeIncluded(Builder $query): Builder
+    public function scopeIncluded(Builder $query)
     {
-        if (empty($this->allowedIncludes) || !request()->has('include')) {
+        if (empty($this->allowIncluded) || empty(request('included'))) {
             return $query;
         }
 
-        $relations = explode(',', request('include'));
+        $relations = explode(',', request('included'));
+        $allowIncluded = collect($this->allowIncluded);
 
-        $validIncludes = collect($relations)->filter(function ($relation) {
-            return in_array($relation, $this->allowedIncludes);
-        })->toArray();
+        foreach ($relations as $key => $relation) {
+            if (!$allowIncluded->contains($relation)) {
+                unset($relations[$key]);
+            }
+        }
 
-        return $query->with($validIncludes);
+        $query->with($relations);
     }
 
-    /**
-     * Scope para filtrar
-     */
-    public function scopeFilter(Builder $query): Builder
+    public function scopeFilter(Builder $query)
     {
-        if (empty($this->allowedFilters) || !request()->has('filter')) {
+        if (empty($this->allowFilter) || empty(request('filter'))) {
             return $query;
         }
 
         $filters = request('filter');
+        $allowFilter = collect($this->allowFilter);
 
-        foreach ($filters as $filter => $value) {
-            if (in_array($filter, $this->allowedFilters)) {
-                $query->where($filter, 'LIKE', "%{$value}%");
+        foreach ($filters as $column => $value) {
+            if ($allowFilter->contains($column)) {
+                if (str_contains($column, '.')) {
+                    [$relation, $field] = explode('.', $column);
+                    $query->whereHas($relation, function($q) use ($field, $value) {
+                        $q->where($field, 'LIKE', "%$value%");
+                    });
+                } else {
+                    if ($column === 'order_date') {
+                        $query->whereDate($column, $value);
+                    } elseif ($column === 'total') {
+                        $query->where($column, $value); // Búsqueda exacta para total
+                    } else {
+                        $query->where($column, 'LIKE', "%$value%");
+                    }
+                }
             }
         }
-
-        return $query;
     }
 
-    /**
-     * Scope para ordenar
-     */
-    public function scopeSort(Builder $query): Builder
+    public function scopeSort(Builder $query)
     {
-        if (empty($this->allowedSorts) || !request()->has('sort')) {
+        if (empty($this->allowSort) || empty(request('sort'))) {
             return $query;
         }
 
         $sortFields = explode(',', request('sort'));
+        $allowSort = collect($this->allowSort);
 
-        foreach ($sortFields as $sortField) {
+        foreach ($sortFields as $field) {
             $direction = 'asc';
-            
-            if (str_starts_with($sortField, '-')) {
+            if (str_starts_with($field, '-')) {
                 $direction = 'desc';
-                $sortField = substr($sortField, 1);
+                $field = substr($field, 1);
             }
 
-            if (in_array($sortField, $this->allowedSorts)) {
-                $query->orderBy($sortField, $direction);
+            if ($allowSort->contains($field)) {
+                $query->orderBy($field, $direction);
             }
         }
-
-        return $query;
     }
 
-    /**
-     * Scope para paginación
-     */
     public function scopeGetOrPaginate(Builder $query)
     {
-        if (request()->has('per_page')) {
-            $perPage = intval(request('per_page'));
-            return $query->paginate($perPage);
-        }
-
-        return $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
-
-   
 }

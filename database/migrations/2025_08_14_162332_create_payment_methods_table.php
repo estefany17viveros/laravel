@@ -16,8 +16,7 @@ return new class extends Migration
             $table->string('type');
             $table->string('description');
             $table->date('expiration_date');
-             $table->unsignedBigInteger('payment_id'); 
-            $table->foreign('payment_id')->references('id')->on('payments')->onDelete('cascade');
+           $table->foreignId('payment_id')->constrained('payments')->onDelete('cascade');
             $table->timestamps();
         });
     }

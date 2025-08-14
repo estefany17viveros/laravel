@@ -15,19 +15,19 @@ class Pet extends Model
         'age',
         'species',
         'breed',
-        'size',
+        'size', 
         'sex',
-        'description',
+        'description', 
         'photo',
-        'trainer_id',
-        'shelter_id',
+        'trainer_id', 
+        'shelter_id', 
         'user_id',
-        'veterinarian_id',
+        'veterinary_id', 
     ];
 
-    protected $allowIncluded = ['trainer', 'shelter', 'user', 'veterinarian'];
-    protected $allowFilter = ['id', 'name', 'species', 'breed', 'sex', 'trainer.name', 'shelter.name', 'user.name', 'veterinarian.name'];
-    protected $allowSort = ['id', 'name', 'age', 'size', 'trainer.name', 'shelter.name', 'user.name', 'veterinarian.name'];
+    protected $allowIncluded = ['trainer', 'refuge', 'user', 'veterinary', 'adoptions'];
+    protected $allowFilter = ['id', 'name', 'species', 'breed', 'sex', 'trainer.name', 'refuge.name', 'user.name', 'veterinary.name'];
+    protected $allowSort = ['id', 'name', 'age', 'size', 'trainer.name', 'refuge.name', 'user.name', 'veterinary.name'];
 
     // Relaciones
     public function trainer()
@@ -35,9 +35,9 @@ class Pet extends Model
         return $this->belongsTo(Trainer::class);
     }
 
-    public function shelter()
+    public function refuge()
     {
-        return $this->belongsTo(Shelter::class);
+        return $this->belongsTo(Refuge::class);
     }
 
     public function user()
@@ -45,9 +45,14 @@ class Pet extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function veterinarian()
+    public function veterinary()
     {
-        return $this->belongsTo(Veterinarian::class);
+        return $this->belongsTo(Veterinary::class);
+    }
+
+    public function adoptions()
+    {
+        return $this->hasMany(Adoption::class, 'mascota_ID');
     }
 
     // Scopes

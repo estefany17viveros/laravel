@@ -11,57 +11,46 @@ class ShoppingCart extends Model
     use HasFactory;
 
     protected $fillable = [
-        'creation_date',
-        'quantity',
-        'price',
-        'total',
-        'user_id',
-        'product_id',
-        'order_id',
+        'quantity',    
+        'date',         
+        'user_id',     
+        'product_id'    
     ];
 
-    protected $allowIncluded = ['user', 'product', 'order', 'product.category', 'user.profile'];
+    protected $allowIncluded = ['user', 'products', 'order'];
     protected $allowFilter = [
         'id',
-        'creation_date',
         'quantity',
-        'price',
-        'total',
-        'user_id',
-        'product_id',
-        'order_id',
+        'date',
         'user.name',
         'user.email',
-        'product.name',
-        'product.price',
-        'product.category.name',
+        'products.name',
+        'products.price',
         'order.status'
     ];
     protected $allowSort = [
         'id',
-        'creation_date',
+        'date',
         'quantity',
-        'price',
-        'total',
         'user.name',
-        'product.name',
-        'product.price',
+        'products.name',
         'order.created_at'
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function product()
+    public function products()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsToMany(Product::class, 'carrito_compras_productos', 'carrito_compras_id', 'producto_id')
+                    ->withPivot('quantity', 'price');
     }
 
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->hasOne(Order::class);
     }
 
     public function scopeIncluded(Builder $query)
@@ -89,17 +78,15 @@ class ShoppingCart extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Filtrado anidado para relaciones
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
                     $query->whereHas($relation, function($q) use ($field, $value) {
                         $q->where($field, 'LIKE', "%$value%");
                     });
                 } else {
-                    // Manejo especial para campos numéricos y fechas
-                    if (in_array($column, ['quantity', 'price', 'total'])) {
+                    if ($column === 'quantity') {
                         $query->where($column, $value);
-                    } elseif ($column === 'creation_date') {
+                    } elseif ($column === 'date') {
                         $query->whereDate($column, $value);
                     } else {
                         $query->where($column, 'LIKE', "%$value%");
@@ -124,7 +111,6 @@ class ShoppingCart extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Ordenamiento anidado para relaciones
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {
@@ -139,7 +125,6 @@ class ShoppingCart extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        $perPage = request('perPage');
-        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
 }

@@ -3,36 +3,45 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Shelter extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'phone', 'responsible', 'email', 'address', 'user_id'];
+    protected $fillable = [
+        'name',       
+        'phone',      
+        'email',      
+        'responsible', 
+        'address',     
+        'user_id'      
+    ];
 
-    protected $allowIncluded = ['user', 'user.profile', 'pets'];
+    protected $allowIncluded = ['user', 'pets', 'adoptions'];
     protected $allowFilter = [
-        'id', 
-        'name', 
-        'email',
+        'id',
+        'name',
         'phone',
+        'email',
         'responsible',
         'address',
         'user.name',
         'user.email',
-        'user.status'
+        'pets.name',
+        'pets.species',
+        'adoptions.status'
     ];
     protected $allowSort = [
-        'id', 
-        'name', 
-        'email',
+        'id',
+        'name',
         'created_at',
         'user.name',
-        'user.created_at'
+        'pets.created_at'
     ];
 
+    // Relaciones
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -40,13 +49,15 @@ class Shelter extends Model
 
     public function pets()
     {
-        return $this->hasMany(Pet::class);
-    }
-     public function roles()
-    {
-        return $this->morphMany(Role::class, 'roleable');
+        return $this->hasMany(Pet::class); 
     }
 
+    public function adoptions()
+    {
+        return $this->hasMany(Adoption::class); 
+    }
+
+    // Scopes
     public function scopeIncluded(Builder $query)
     {
         if (empty($this->allowIncluded) || empty(request('included'))) return;
@@ -72,15 +83,14 @@ class Shelter extends Model
 
         foreach ($filters as $column => $value) {
             if ($allowFilter->contains($column)) {
-                // Filtrado anidado para relaciones
                 if (str_contains($column, '.')) {
                     [$relation, $field] = explode('.', $column);
                     $query->whereHas($relation, function($q) use ($field, $value) {
                         $q->where($field, 'LIKE', "%$value%");
                     });
                 } else {
-                    // Manejo especial para búsqueda exacta en teléfono
-                    if ($column === 'phone') {
+                    // Búsqueda exacta para campos únicos como phone y email
+                    if (in_array($column, ['phone', 'email'])) {
                         $query->where($column, $value);
                     } else {
                         $query->where($column, 'LIKE', "%$value%");
@@ -105,7 +115,6 @@ class Shelter extends Model
             }
 
             if ($allowSort->contains($field)) {
-                // Ordenamiento anidado para relaciones
                 if (str_contains($field, '.')) {
                     [$relation, $relationField] = explode('.', $field);
                     $query->with([$relation => function($q) use ($relationField, $direction) {
@@ -120,7 +129,6 @@ class Shelter extends Model
 
     public function scopeGetOrPaginate(Builder $query)
     {
-        $perPage = request('perPage');
-        return $perPage ? $query->paginate(intval($perPage)) : $query->get();
+        return request('perPage') ? $query->paginate(request('perPage')) : $query->get();
     }
 }

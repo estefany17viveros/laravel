@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('status');
             $table->text('comments');
-            
             $table->foreignId('pet_id')->constrained('pets')->onDelete('cascade');
             $table->foreignId('shelter_id')->constrained('shelters')->onDelete('cascade');
            
