@@ -13,7 +13,7 @@ class PaymentMethodFactory extends Factory
     {
         return [
             'type' => $this->faker->randomElement(['Credit Card', 'Debit Card', 'PayPal', 'PSE']),
-            'description' => $this->faker->creditCardNumber(),
+            'description' => $this->faker->sentence(),
             'expiration_date' => $this->faker->creditCardExpirationDate(),
             'payment_id' => Payment::factory(),
 

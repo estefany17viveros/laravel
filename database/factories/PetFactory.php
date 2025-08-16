@@ -9,7 +9,7 @@ use App\Models\Pet;
 use App\Models\Trainer;
 use App\Models\Shelter;
 use App\Models\User;
-use App\Models\Veterinarian;
+use App\Models\Veterinary;
 
 class PetFactory extends Factory
 {
@@ -29,7 +29,7 @@ class PetFactory extends Factory
             'trainer_id' => Trainer::inRandomOrder()->first()?->id,
             'shelter_id' => Shelter::inRandomOrder()->first()?->id,
             'user_id' => User::inRandomOrder()->first()?->id,
-            'veterinarian_id' => Veterinarian::inRandomOrder()->first()?->id,
+            'veterinarian_id' => Veterinary::inRandomOrder()->first()?->id,
         ];
     }
 }

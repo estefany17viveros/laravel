@@ -9,11 +9,11 @@ class TopicController extends Controller
 {
     public function index()
     {
-        $topics = Topic::withCount('posts')
-            ->included()
-            ->filter()
-            ->sort()
-            ->getOrPaginate();
+       $topics = Topic::query()
+    ->included()
+    ->filter()
+    ->sort()
+    ->getOrPaginate();
             
         return response()->json($topics);
     }

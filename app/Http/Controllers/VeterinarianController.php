@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Veterinarian;
+use App\Models\Veterinary;
 use Illuminate\Http\Request;
 
 class VeterinarianController extends Controller
 {
     public function index()
     {
-        $veterinarians = Veterinarian::withCount(['appointments', 'pets'])
+        $veterinarians = Veterinary::query()
             ->included()
             ->filter()
             ->sort()
@@ -35,20 +35,20 @@ class VeterinarianController extends Controller
             'shelter_id' => 'required|exists:shelters,id'
         ]);
 
-        $veterinarian = Veterinarian::create($request->all());
+        $veterinarian = Veterinary::create($request->all());
         return response()->json($veterinarian, 201);
     }
 
     public function show($id)
     {
-        $veterinarian = Veterinarian::withCount(['appointments', 'pets'])
+        $veterinarian = Veterinary::query()
             ->included()
             ->findOrFail($id);
 
         return response()->json($veterinarian);
     }
 
-    public function update(Request $request, Veterinarian $veterinarian)
+    public function update(Request $request, Veterinary $veterinarian)
     {
         $request->validate([
             'name' => 'sometimes|string|max:100',
@@ -69,7 +69,7 @@ class VeterinarianController extends Controller
         return response()->json($veterinarian);
     }
 
-    public function destroy(Veterinarian $veterinarian)
+    public function destroy(Veterinary $veterinarian)
     {
         $veterinarian->delete();
         return response()->json(['message' => 'Veterinarian deleted successfully']);

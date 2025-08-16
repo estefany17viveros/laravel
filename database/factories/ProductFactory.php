@@ -4,6 +4,9 @@ namespace Database\Factories;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Veterinary;
+use App\Models\ShoppingCart;
+
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProductFactory extends Factory
@@ -18,6 +21,9 @@ class ProductFactory extends Factory
             'price' => $this->faker->randomFloat(2, 5, 500), // Ej: entre 5.00 y 500.00
             'image' => $this->faker->optional()->imageUrl(),
             'category_id' => Category::factory(),
+            'veterinarian_id' => Veterinary::factory(),
+            'shopping_carts_id' => ShoppingCart::factory(),
+
         ];
     }
 }

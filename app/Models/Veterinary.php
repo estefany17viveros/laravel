@@ -12,6 +12,9 @@ class Veterinary extends Model
 {
     use HasFactory;
 
+        protected $table = 'veterinarians';
+
+
     protected $fillable = [
         'name',          
         'address',       

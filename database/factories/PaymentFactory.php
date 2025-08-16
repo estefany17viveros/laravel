@@ -5,9 +5,9 @@ namespace Database\Factories;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
-use App\Models\Payment_Type;
+use App\Models\PaymentType;
 use App\Models\User;
-use App\Models\Veterinarian;
+use App\Models\Veterinary;
 use App\Models\Trainer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,11 +18,11 @@ class PaymentFactory extends Factory
     public function definition(): array
     {
         $user = User::inRandomOrder()->first() ?? User::factory()->create();
-        $paymentType = Payment_Type::inRandomOrder()->first() ?? Payment_Type::factory()->create();
+        $paymentType = PaymentType::inRandomOrder()->first() ?? PaymentType::factory()->create();
 
         $payableModels = [
             Order::class => Order::inRandomOrder()->first() ?? Order::factory()->create(),
-            Veterinarian::class => Veterinarian::inRandomOrder()->first() ?? Veterinarian::factory()->create(),
+            Veterinary::class => Veterinary::inRandomOrder()->first() ?? Veterinary::factory()->create(),
             Trainer::class => Trainer::inRandomOrder()->first() ?? Trainer::factory()->create(),
         ];
 

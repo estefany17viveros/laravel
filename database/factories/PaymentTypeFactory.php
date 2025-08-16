@@ -3,11 +3,13 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\PaymentType;
+
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Payment_Types>
  */
-class PaymentTypesFactory extends Factory
+class PaymentTypeFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -17,7 +19,8 @@ class PaymentTypesFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->word(),
+            'description' => $this->faker->sentence(),   
         ];
     }
 }

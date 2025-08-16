@@ -15,9 +15,8 @@ Route::middleware('auth:api')->group(function () {
 Route::apiResource('forums', ForumController::class);
 Route::apiResource('topics', TopicController::class);
 Route::apiResource('answers', AnswerController::class);
-// Route::apiResource('averages', AverageController::class);
 Route::apiResource('trainers', TrainerController::class);
-Route::apiResource('veterinaries', VeterinarianController::class);
+Route::apiResource('veterinarians', VeterinarianController::class);
 Route::apiResource('shelters', ShelterController::class);
 Route::apiResource('pets', PetController::class);
 Route::apiResource('adoptions', AdoptionController::class);
@@ -34,6 +33,7 @@ Route::apiResource('inventories', InventoryController::class);
 Route::apiResource('orderitems', OrderItemController::class);
 Route::apiResource('payments', PaymentController::class);
 Route::apiResource('paymentmethos', PaymentMethodController::class);
+Route::apiResource('paymenttypes', PaymentTypeController::class);
 Route::apiResource('users', UserController::class);
 Route::apiResource('socks', SockController::class);
 Route::apiResource('roles', RoleController::class);

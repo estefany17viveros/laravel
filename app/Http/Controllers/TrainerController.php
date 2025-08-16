@@ -9,7 +9,7 @@ class TrainerController extends Controller
 {
     public function index()
     {
-        $trainers = Trainer::withCount(['appointments', 'services'])
+        $trainers = Trainer::query()
             ->included()
             ->filter()
             ->sort()

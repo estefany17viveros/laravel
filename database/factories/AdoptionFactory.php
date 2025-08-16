@@ -15,7 +15,6 @@ class AdoptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'application_date' => $this->faker->dateTime(),
             'status' => $this->faker->randomElement(['pending', 'approved', 'rejected']),
             'comments' => $this->faker->sentence(),
             'pet_id' => Pet::inRandomOrder()->first()?->id,
