@@ -18,7 +18,7 @@ class PaymentTypeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:255',
         ]);
 
@@ -35,7 +35,7 @@ class PaymentTypeController extends Controller
     public function update(Request $request, PaymentType $paymentType)
     {
         $validated = $request->validate([
-            'type' => 'sometimes|string|max:100',
+            'name' => 'sometimes|string|max:100',
             'description' => 'sometimes|string|max:255',
         ]);
 

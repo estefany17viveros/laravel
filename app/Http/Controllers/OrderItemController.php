@@ -24,7 +24,7 @@ class OrderItemController extends Controller
     {
         $validated = $request->validate([
             'quantity' => 'required|integer|min:1',
-            'price' => 'required|numeric|min:0',
+            'unit_price' => 'required|numeric|min:0',
             'order_id' => 'nullable|exists:orders,id',
             'product_id' => 'nullable|exists:products,id',
         ]);
@@ -41,7 +41,7 @@ class OrderItemController extends Controller
     {
         $validated = $request->validate([
             'quantity' => 'sometimes|integer|min:1',
-            'price' => 'sometimes|numeric|min:0',
+            'unit_price' => 'sometimes|numeric|min:0',
             'order_id' => 'nullable|exists:orders,id',
             'product_id' => 'nullable|exists:products,id',
         ]);

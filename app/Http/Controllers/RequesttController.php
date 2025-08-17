@@ -24,9 +24,7 @@ class RequesttController extends Controller
             'priority' => 'required|integer|min:1',
             'solicitation_status' => 'required|string',
             'user_id' => 'required|exists:users,id',
-            'shelter_id' => 'nullable|exists:shelters,id',
-            'services_id' => 'required|exists:services,id',
-            'appointment_id' => 'required|exists:appointments,id',
+            'adoption_id' => 'required|exists:adoptions,id',
         ]);
 
         $requestt = Requestt::create($request->all());
@@ -46,9 +44,8 @@ class RequesttController extends Controller
             'priority' => 'sometimes|integer|min:1',
             'solicitation_status' => 'sometimes|string',
             'user_id' => 'sometimes|exists:users,id',
-            'shelter_id' => 'nullable|exists:shelters,id',
-            'services_id' => 'sometimes|exists:services,id',
-            'appointment_id' => 'sometimes|exists:appointments,id',
+            'adoption_id' => 'sometimes|exists:adoptions,id',
+            
         ]);
 
         $requestt->update($request->all());

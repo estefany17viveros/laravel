@@ -24,9 +24,6 @@ class ShipmentController extends Controller
             'cost' => 'required|numeric|min:0',
             'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
             'shipping_method' => 'required|string|max:100',
-            'tracking_number' => 'nullable|string|max:50|unique:shipments',
-            'estimated_delivery' => 'nullable|date',
-            'shipped_at' => 'nullable|date',
             'order_id' => 'required|exists:orders,id',
         ]);
 
@@ -47,9 +44,6 @@ class ShipmentController extends Controller
             'cost' => 'sometimes|numeric|min:0',
             'status' => 'sometimes|string|in:pending,processing,shipped,delivered,cancelled',
             'shipping_method' => 'sometimes|string|max:100',
-            'tracking_number' => 'nullable|string|max:50|unique:shipments,tracking_number,'.$shipment->id,
-            'estimated_delivery' => 'nullable|date',
-            'shipped_at' => 'nullable|date',
             'order_id' => 'sometimes|exists:orders,id',
         ]);
 

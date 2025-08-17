@@ -11,17 +11,7 @@ class InventoryController extends Controller
     {
         $query = Inventory::query();
         
-        if (request('low_stock')) {
-            $query->whereColumn('quantity_available', '<=', 'minimum_stock');
-        }
-        
-        if (request('min_quantity') && request('max_quantity')) {
-            $query->whereBetween('quantity_available', [
-                request('min_quantity'),
-                request('max_quantity')
-            ]);
-        }
-        
+       
         return $query->included()->filter()->sort()->getOrPaginate();
     }
 
@@ -30,8 +20,6 @@ class InventoryController extends Controller
         $validated = $request->validate([
             'quantity_available' => 'required|integer|min:0',
             'product_id' => 'required|exists:products,id',
-            'minimum_stock' => 'nullable|integer|min:0',
-            'location' => 'nullable|string|max:100'
         ]);
 
         $inventory = Inventory::create($validated);
@@ -49,8 +37,6 @@ class InventoryController extends Controller
         $validated = $request->validate([
             'quantity_available' => 'sometimes|integer|min:0',
             'product_id' => 'sometimes|exists:products,id',
-            'minimum_stock' => 'nullable|integer|min:0',
-            'location' => 'nullable|string|max:100'
         ]);
 
         $inventory->update($validated);

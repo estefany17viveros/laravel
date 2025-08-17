@@ -33,11 +33,6 @@ class PaymentController extends Controller
             $query->status($request->input('status'));
         }
         
-        // Filtro por método de pago
-        if ($request->has('payment_method_id')) {
-            $query->where('payment_method_id', $request->input('payment_method_id'));
-        }
-        
         return $query->included()->filter()->sort()->getOrPaginate();
     }
 
@@ -54,11 +49,10 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
             'date' => 'required|date',
-            'status' => 'required|in:pending,confirmed,completed,cancelled,refunded',
-            'payable_id' => 'required|integer',
-            'payable_type' => 'required|string|in:orders,invoices', // Tipos permitidos
-            'payment_method_id' => 'required|exists:payment_methods,id',
-            'transaction_id' => 'nullable|string|max:100',
+            'status' => 'required|in:pending,confirmed,completed,cancelled',
+            'payable_id' => 'required|integer|min:1',
+            'payable_type' => 'required|string', 
+            'payment_types_id' => 'required|exists:payment_types,id',
             'user_id' => 'required|exists:users,id'
         ]);
 
@@ -72,10 +66,9 @@ class PaymentController extends Controller
             'amount' => 'sometimes|numeric|min:0',
             'date' => 'sometimes|date',
             'status' => 'sometimes|in:pending,confirmed,completed,cancelled,refunded',
-            'payable_id' => 'sometimes|integer',
-            'payable_type' => 'sometimes|string|in:orders,invoices',
-            'payment_method_id' => 'sometimes|exists:payment_methods,id',
-            'transaction_id' => 'nullable|string|max:100',
+            'payable_id' => 'sometimes|integer|min:1',
+            'payable_type' => 'sometimes|string',
+            'payment_types_id' => 'sometimes|exists:payment_types,id',
             'user_id' => 'sometimes|exists:users,id'
         ]);
 

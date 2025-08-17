@@ -20,7 +20,11 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric',
             'image' => 'nullable|string',
+            'veterinarian_id'=>'required|exists:veterinarians,id',
             'category_id' => 'required|exists:categories,id',
+            'shopping_carts_id' => 'required|exists:shopping_carts,id',
+
+
         ]);
 
         $product = Product::create($request->all());
@@ -41,6 +45,9 @@ class ProductController extends Controller
             'price' => 'sometimes|numeric',
             'image' => 'nullable|string',
             'category_id' => 'sometimes|exists:categories,id',
+            'veterinarian_id' => 'sometimes|exists:veterinarians,id',
+            'shopping_carts_id' => 'sometimes|exists:shopping_carts,id',
+
         ]);
 
         $product->update($request->all());

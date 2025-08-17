@@ -20,10 +20,7 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name_role' => 'required|string|max:255',
-            'description' => 'required|string|max:255',
-            'roleable_id' => 'required|integer',
-            'roleable_type' => 'required|string'
+            'type' => 'required|string|in:admin,customer,veterinarian,trainer',
         ]);
 
         $role = Role::create($request->all());
@@ -38,9 +35,12 @@ class RoleController extends Controller
 
     public function update(Request $request, $id)
     {
-        $role = Role::findOrFail($id);
-        $role->update($request->all());
-        return response()->json($role);
+         $validated = $request->validate([
+        'type' => 'sometimes|string|in:admin,customer,veterinarian,trainer', ]);
+
+    $role->update($validated);
+
+    return response()->json($role);
     }
 
     public function destroy($id)

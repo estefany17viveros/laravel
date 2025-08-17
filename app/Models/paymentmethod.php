@@ -39,7 +39,7 @@ class PaymentMethod extends Model
     }
 
     
-    public function scopeInclude(Builder $query, ?array $relations = null): Builder
+    public function scopeIncluded(Builder $query, ?array $relations = null): Builder
     {
         if (empty($relations)) {
             return $query;

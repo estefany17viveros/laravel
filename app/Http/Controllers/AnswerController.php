@@ -24,7 +24,6 @@ class AnswerController extends Controller
             'content' => 'required|string',
             'creation_date' => 'required|date',
             'topic_id' => 'required|exists:topics,id',
-            'users_id' => 'required|exists:users,id',
         ]);
 
         $answer = Answer::create($validated);
@@ -43,7 +42,6 @@ class AnswerController extends Controller
             'content' => 'sometimes|string',
             'creation_date' => 'sometimes|date',
             'topic_id' => 'sometimes|exists:topics,id',
-            'users_id' => 'sometimes|exists:users,id',
         ]);
 
         $answer->update($validated);

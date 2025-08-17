@@ -9,10 +9,10 @@ class PaymentMethodController extends Controller
 {
     public function index()
     {
-        return PaymentMethod::include(request('include'))
-            ->filter(request()->all())
-            ->sort(request('sort', 'id'), request('order', 'asc'))
-            ->getOrPaginate(request()->has('page'), request('per_page', 15));
+        return PaymentMethod::included()
+            ->filter()
+            ->sort()
+            ->getOrPaginate();
     }
 
     public function store(Request $request)
@@ -22,7 +22,6 @@ class PaymentMethodController extends Controller
             'description'     => 'required|string|max:255',
             'expiration_date' => 'required|date|after_or_equal:today',
             'payment_id'      => 'nullable|exists:payments,id',
-            'user_id'         => 'required|exists:users,id',
         ]);
 
         $method = PaymentMethod::create($validated);
@@ -42,7 +41,6 @@ class PaymentMethodController extends Controller
             'description'     => 'sometimes|string|max:255',
             'expiration_date' => 'sometimes|date|after_or_equal:today',
             'payment_id'      => 'nullable|exists:payments,id',
-            'user_id'         => 'sometimes|exists:users,id',
         ]);
 
         $paymentMethod->update($validated);

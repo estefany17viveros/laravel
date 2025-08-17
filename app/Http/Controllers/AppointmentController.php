@@ -32,12 +32,8 @@ class AppointmentController extends Controller
             'status' => 'required|in:pending,confirmed,completed,cancelled',
             'date' => 'required|date',
             'description' => 'nullable|string|max:500',
-            'user_id' => 'required|exists:users,id',
             'veterinarian_id' => 'required|exists:veterinarians,id',
-            'service_id' => 'required|exists:services,id',
-            'schedule_id' => 'required|exists:schedules,id',
             'trainer_id' => 'required|exists:trainers,id',
-            'pet_id' => 'nullable|exists:pets,id',
         ]);
 
         $appointment = Appointment::create($validated);
@@ -56,12 +52,8 @@ class AppointmentController extends Controller
             'status' => 'sometimes|in:pending,confirmed,completed,cancelled',
             'date' => 'sometimes|date',
             'description' => 'nullable|string|max:500',
-            'user_id' => 'sometimes|exists:users,id',
             'veterinarian_id' => 'sometimes|exists:veterinarians,id',
-            'service_id' => 'sometimes|exists:services,id',
-            'schedule_id' => 'sometimes|exists:schedules,id',
             'trainer_id' => 'sometimes|exists:trainers,id',
-            'pet_id' => 'nullable|exists:pets,id',
         ]);
 
         $appointment->update($validated);

@@ -32,8 +32,7 @@ class NotificationController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'user_id' => 'required|exists:users,id',
-            'type' => 'nullable|string|max:50',
-            'is_read' => 'nullable|boolean'
+            'appointment_id' => 'required|exists:appointments,id',
         ]);
 
         $notification = Notification::create($validated);
@@ -52,8 +51,7 @@ class NotificationController extends Controller
             'title' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
             'user_id' => 'sometimes|exists:users,id',
-            'type' => 'nullable|string|max:50',
-            'is_read' => 'nullable|boolean'
+            'appointment_id' => 'sometimes|exists:appointments,id'
         ]);
 
         $notification->update($validated);

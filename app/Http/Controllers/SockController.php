@@ -23,19 +23,10 @@ class SockController extends Controller
             'type' => 'required|string|max:100',
             'URL' => 'required|url|max:255',
             'Upload_Date' => 'required|date',
-            'size' => 'nullable|string|max:20',
-            'color' => 'nullable|string|max:50',
-            'description' => 'nullable|string|max:500',
             'topic_id' => 'required|exists:topics,id',
-            'tags' => 'nullable|array',
-            'tags.*' => 'exists:tags,id'
-        ]);
+            'answer_id' => 'required|exists:answers,id',
 
-        $sock = Sock::create($request->except('tags'));
-        
-        if ($request->has('tags')) {
-            $sock->tags()->sync($request->tags);
-        }
+        ]);
 
         return response()->json($sock, 201);
     }
@@ -52,19 +43,11 @@ class SockController extends Controller
             'type' => 'sometimes|string|max:100',
             'URL' => 'sometimes|url|max:255',
             'Upload_Date' => 'sometimes|date',
-            'size' => 'nullable|string|max:20',
-            'color' => 'nullable|string|max:50',
-            'description' => 'nullable|string|max:500',
             'topic_id' => 'sometimes|exists:topics,id',
-            'tags' => 'nullable|array',
-            'tags.*' => 'exists:tags,id'
-        ]);
+            'answer_id' => 'sometimes|exists:answers,id',
 
-        $sock->update($request->except('tags'));
-        
-        if ($request->has('tags')) {
-            $sock->tags()->sync($request->tags);
-        }
+            
+        ]);
 
         return response()->json($sock);
     }

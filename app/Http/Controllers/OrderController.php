@@ -29,11 +29,6 @@ class OrderController extends Controller
             }
         }
         
-        // Filtro por estado de pago
-        if (request('payment_status')) {
-            $query->where('payment_status', request('payment_status'));
-        }
-        
         return $query->included()->filter()->sort()->getOrPaginate();
     }
 
@@ -44,8 +39,6 @@ class OrderController extends Controller
             'status' => 'required|string|in:pending,processing,completed,cancelled',
             'order_date' => 'nullable|date',
             'user_id' => 'required|exists:users,id',
-            'payment_status' => 'nullable|string|in:pending,paid,failed',
-            'shipping_address' => 'nullable|string|max:500'
         ]);
 
         $order = Order::create($validated);
@@ -65,8 +58,6 @@ class OrderController extends Controller
             'status' => 'sometimes|string|in:pending,processing,completed,cancelled',
             'order_date' => 'sometimes|date|nullable',
             'user_id' => 'sometimes|exists:users,id',
-            'payment_status' => 'nullable|string|in:pending,paid,failed',
-            'shipping_address' => 'nullable|string|max:500'
         ]);
 
         $order->update($validated);

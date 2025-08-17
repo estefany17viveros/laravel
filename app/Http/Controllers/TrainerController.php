@@ -28,9 +28,6 @@ class TrainerController extends Controller
             'phone' => 'required|string|max:20',
             'email' => 'required|email|max:100|unique:trainers',
             'biography' => 'nullable|string',
-            'status' => 'sometimes|string|in:active,inactive,on_leave',
-            'certifications' => 'nullable|string',
-            'hourly_rate' => 'required|numeric|min:0',
             'user_id' => 'required|exists:users,id'
         ]);
 
@@ -57,9 +54,6 @@ class TrainerController extends Controller
             'phone' => 'sometimes|string|max:20',
             'email' => 'sometimes|email|max:100|unique:trainers,email,'.$trainer->id,
             'biography' => 'nullable|string',
-            'status' => 'sometimes|string|in:active,inactive,on_leave',
-            'certifications' => 'nullable|string',
-            'hourly_rate' => 'sometimes|numeric|min:0',
             'user_id' => 'sometimes|exists:users,id'
         ]);
 

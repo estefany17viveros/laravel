@@ -21,16 +21,14 @@ class AdoptionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'application_date' => 'required|date',
-            'status' => 'required|string',
-            'comments' => 'nullable|string',
-            'user_id' => 'required|exists:users,id',
-            'pet_id' => 'required|exists:pets,id',
-            'requestt_id' => 'required|exists:requestts,id',
+            'status'     => 'required|string',
+            'comments'   => 'nullable|string',
+            'pet_id'     => 'required|exists:pets,id',
             'shelter_id' => 'required|exists:shelters,id',
         ]);
 
         $adoption = Adoption::create($validated);
+
         return response()->json($adoption, 201);
     }
 
@@ -43,16 +41,14 @@ class AdoptionController extends Controller
     public function update(Request $request, Adoption $adoption)
     {
         $validated = $request->validate([
-            'application_date' => 'sometimes|date',
-            'status' => 'sometimes|string',
-            'comments' => 'sometimes|string',
-            'user_id' => 'sometimes|exists:users,id',
-            'pet_id' => 'sometimes|exists:pets,id',
-            'requestt_id' => 'sometimes|exists:requestts,id',
+            'status'     => 'sometimes|string',
+            'comments'   => 'sometimes|string',
+            'pet_id'     => 'sometimes|exists:pets,id',
             'shelter_id' => 'sometimes|exists:shelters,id',
         ]);
 
         $adoption->update($validated);
+
         return response()->json($adoption);
     }
 
