@@ -29,17 +29,13 @@ class PaymentController extends Controller
             }
         }
         
-        if ($request->has('status')) {
-            $query->status($request->input('status'));
-        }
-        
         return $query->included()->filter()->sort()->getOrPaginate();
     }
 
     public function show(Payment $payment)
     {
         $payment->load(
-            explode(',', request('included', 'payable,paymentMethod'))
+            explode(',', request('included', 'payable,paymentMethods'))
         );
         return response()->json($payment);
     }
